@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<style>
+@media (orientation: portrait) {
+  body::before {
+    content: "📱 横向きにしてください";
+    position:fixed;inset:0;z-index:9999;
+    background:#1A3A6A;color:#FFD700;font-size:22px;font-weight:900;
+    display:flex;align-items:center;justify-content:center;font-family:sans-serif;
+  }
+}
+</style>
+<title>パワプロ風バスケ成長管理</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=M+PLUS+1p:wght@500;700;800;900&display=swap');
+
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  font-family: 'M PLUS 1p', sans-serif;
+  background: #6B9AB8;
+  min-height: 100vh;
+  display: flex; flex-direction: column;
+  align-items: center; padding: 8px; gap: 6px;
+}
+
+/* ─── デモナビ ─── */
+.nav { display:flex; gap:5px; flex-wrap:wrap; justify-content:center; width:100%; max-width:980px; }
+.nav button {
+  background:rgba(255,255,255,0.22); border:1.5px solid rgba(255,255,255,0.5);
+  color:#fff; font-size:11px; font-weight:700; padding:5px 16px;
+  border-radius:20px; cursor:pointer; font-family:inherit;
+}
+.nav button.on { background:rgba(255,255,255,0.6); color:#1A3A5A; }
+
+.scr { display:none; width:100%; max-width:980px; }
+.scr.on { display:flex; flex-direction:column; gap:8px; }
+.spacer { height:62px; }
+
+/* ホーム画面のサイドパネルを横3列で下に並べる */
+.side-row {
+  display: flex; gap: 8px; align-items: flex-start;
+}
+.side-row > * { flex: 1; }
+
+/* ══════════════════════════════════════════════
+   パワプロカード — 本物Image2完全準拠
+══════════════════════════════════════════════ */
+
+/*
+  本物の色を確定値で記録：
+  ・全体背景：#EAF4FD（非常に薄い青白）
+  ・タブ行背景：#1A3080（濃紺）
+  ・アクティブタブ：カード背景と同色 #EAF4FD
+  ・選手名ボックス：#33BB00（鮮やかな緑）白文字
+  ・ステータスラベル：白背景(#fff) 角丸 薄枠 グレー文字
+  ・ランク文字：独立・大・色付き
+  ・特殊能力セル上2行：#B0CFEA（水色グレー）
+  ・スキルバッジ通常：#C0DCEE（薄い青）
+  ・スキルバッジ金枠：#FFE050（黄色）
+  ・スキルバッジ空：#DAEEFA（さらに薄い青）白枠
+  ・強調セル（回復B）：白背景 濃い枠
+  ・右エリア背景全体：白 #fff（大きい白パネル）
+*/
+
+.card {
+  background: #EAF4FD;
+  border: 2px solid #88B8D8;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0,0,40,0.3);
+  width: 100%;
+}
+
+/* タブ行 */
+.tabs {
+  background: #1A3080;
+  display: flex; align-items: flex-end;
+  padding: 3px 4px 0; gap: 2px; height: 32px;
+}
+.t-arr {
+  background: #0C1E5A; color: #88AAEE;
+  font-size: 10px; font-weight: 900;
+  padding: 0 8px; height: 26px;
+  border-radius: 4px 4px 0 0;
+  border: 1px solid #2A44AA; border-bottom: none;
+  display: flex; align-items: center; cursor: pointer;
+  white-space: nowrap;
+}
+.tab {
+  flex: 1; height: 26px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 900;
+  border-radius: 4px 4px 0 0;
+  border: 1px solid; border-bottom: none;
+  cursor: pointer; letter-spacing: 0.03em;
+}
+.tab.on  { background:#EAF4FD; color:#111; border-color:#77AACC; }
+.tab.red { background:#6A1400; color:#FFBB88; border-color:#882211; }
+.tab.grn { background:#2A4800; color:#88CC44; border-color:#3A6600; }
+.tab.brn { background:#4A3200; color:#CCBB55; border-color:#664400; }
+.tab.tel { background:#072E44; color:#55AACC; border-color:#0A4466; }
+
+/* 選手名行 */
+.row-name {
+  background: #D8EEFA;
+  border-bottom: 1px solid #99C4E0;
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 10px;
+}
+/* 緑ボックス */
+.namebox {
+  background: #33BB00;
+  border: 2px solid #229900;
+  border-radius: 6px;
+  padding: 4px 14px;
+  font-size: 18px; font-weight: 900;
+  color: #fff; white-space: nowrap;
+  text-shadow: 0 1px 3px rgba(0,80,0,0.5);
+}
+.teamico {
+  width: 28px; height: 20px;
+  border: 1px solid #AABBCC; border-radius: 2px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; background:#fff;
+}
+.numbox {
+  background: #fff; border: 1.5px solid #88AACC; border-radius: 4px;
+  padding: 3px 12px; font-size: 17px; font-weight: 900; color: #111;
+  min-width: 44px; text-align: center;
+}
+/* 成績エリア */
+.seiseki {
+  margin-left: auto; display: flex; align-items: center; gap: 3px;
+}
+.sei-lbl {
+  background: #C8E4F4; border: 1px solid #88AACC; border-radius: 3px;
+  padding: 1px 5px; font-size: 10px; font-weight: 700; color: #224466;
+  margin-right: 2px;
+}
+.sei-v { font-size: 15px; font-weight: 900; color: #111; }
+.sei-u { font-size: 10px; color: #446688; }
+
+/* 守備位置行 */
+.row-pos {
+  background: #D8EEFA;
+  border-bottom: 1px solid #99C4E0;
+  display: flex; align-items: center; gap: 8px;
+  padding: 4px 10px;
+}
+.pos-lbl {
+  background: #C8E0F0; border: 1px solid #88AACC; border-radius: 4px;
+  padding: 2px 8px; font-size: 11px; font-weight: 700; color: #224466;
+  white-space: nowrap;
+}
+.pos-val { font-size: 14px; font-weight: 900; color: #111; }
+.badge-star {
+  background: linear-gradient(135deg,#FFE800,#FFAA00);
+  border: 1px solid #BB8800; border-radius: 3px;
+  padding: 1px 7px; font-size: 11px; font-weight: 900; color: #2A1800;
+}
+.badge-dia {
+  background: #2244CC; border: 1px solid #1133BB; border-radius: 3px;
+  padding: 1px 7px; font-size: 10px; font-weight: 900; color: #fff;
+}
+/* キャラアイコン */
+.chara {
+  width: 58px; height: 58px; background: #fff;
+  border: 1px solid #AACCDD; border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 32px;
+}
+/* フォーム右側 */
+.form-area { margin-left: auto; text-align: right; }
+.form-pill {
+  display: inline-block;
+  background: #C8E0F0; border: 1px solid #88AACC; border-radius: 3px;
+  padding: 1px 6px; font-size: 10px; font-weight: 700; color: #224466;
+  margin-right: 3px;
+}
+.form-val { font-size: 12px; font-weight: 700; color: #111; line-height: 2.1; }
+
+/* ── メインエリア2カラム ── */
+.main { display: flex; }
+
+/*
+  左：ステータス列
+  本物の構造：
+    [白背景ラベルbox][ランク文字(大)][数値(大)]
+  ラベルboxは白背景・薄い枠・角丸・グレー文字
+  ランクと数値はboxの外に独立
+*/
+.stat-col {
+  flex: 0 0 auto; width: 188px;
+  background: #EAF4FD;
+  border-right: 1px solid #99C4E0;
+  padding: 5px 6px; display: flex; flex-direction: column; gap: 3px;
+}
+.si { display: flex; align-items: center; height: 32px; gap: 6px; }
+
+/* ラベルbox：白背景・角丸 */
+.slbl {
+  background: #fff;
+  border: 1px solid #AACCDD;
+  border-radius: 5px;
+  width: 72px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: #446688;
+  flex-shrink: 0; letter-spacing: -0.01em;
+}
+/* ランク文字 */
+.srk { font-size: 24px; font-weight: 900; width: 28px; text-align: center; flex-shrink: 0; line-height: 1; }
+/* 数値 */
+.svl { font-size: 22px; font-weight: 900; color: #111; flex: 1; text-align: right; padding-right: 4px; }
+
+/* 弾道行の矢印 */
+.darr { font-size: 24px; color: #FF44AA; flex-shrink: 0; }
+
+/* ランク色 — 本物準拠 */
+.S { color: #FFD700; text-shadow: 0 0 6px rgba(200,150,0,0.7); }
+.A { color: #EE1111; }
+.B { color: #2233EE; }
+.C { color: #119933; }
+.D { color: #CC8800; }  /* 本物のDは黄色っぽいオレンジ */
+.E { color: #888888; }
+
+/*
+  右：特殊能力＋スキルエリア
+  本物：大きい白パネルの中にセルが並ぶ
+*/
+.ab-col {
+  flex: 1;
+  background: #fff;
+  padding: 5px 6px;
+  display: flex; flex-direction: column; gap: 3px;
+}
+
+/*
+  特殊能力上2行（チャンス・対左・ケガ等）
+  本物：薄青グレー背景セル、「チャンス D」のように文字+ランク
+  3列
+*/
+.abgrid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 2px; }
+.ab {
+  background: #B8D4EA;
+  border: 1px solid #88AACC;
+  border-radius: 3px;
+  height: 24px; padding: 0 6px;
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 10px; font-weight: 700; color: #224466;
+  white-space: nowrap; gap: 4px;
+}
+.ab .ak { font-size: 12px; font-weight: 900; }
+/* 強調セル（回復B）：白背景・濃枠 */
+.ab.hl { background: #fff; border: 1.5px solid #4488AA; color: #224466; }
+/* 空セル */
+.ab.mt { background: transparent; border-color: transparent; }
+
+/*
+  スキルバッジ
+  本物：4列
+  通常：薄青背景 #B8D4EA（特殊能力セルと同系）
+  金枠：黄色 #FFE050
+  空：白背景・薄い青枠
+*/
+.skgrid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 2px; flex: 1; }
+.sk {
+  background: #B8D4EA;
+  border: 1px solid #88AACC;
+  border-radius: 3px;
+  height: 28px; padding: 0 4px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; color: #112233; text-align: center;
+}
+.sk.gold { background: #FFE050; border-color: #BBAA00; color: #3A2000; font-weight: 900; }
+.sk.neg  { background: #FFCCDD; border-color: #CC7788; color: #881122; }
+.sk.mt   { background: #fff; border: 1px solid #AACCDD; }
+
+
+/* ════════════════════ サブ画面 ════════════════════ */
+/* side は削除済み */
+
+.sc {
+  background: #D8EEFA;
+  border: 2px solid #88BBDD;
+  border-radius: 8px; overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+}
+.sh {
+  background: linear-gradient(90deg, #1A3A88, #2A5AAA);
+  color: #fff; font-size: 12px; font-weight: 900;
+  padding: 6px 12px; letter-spacing: 0.04em;
+}
+.sb { padding: 8px; }
+
+/* 練習入力 */
+.cat {
+  background: linear-gradient(90deg, #1A3A88, #2A5AAA);
+  color: #fff; font-size: 10px; font-weight: 900;
+  padding: 3px 8px; border-radius: 3px;
+  margin-bottom: 4px; letter-spacing: 0.04em;
+}
+.mlist { display: flex; flex-direction: column; gap: 2px; margin-bottom: 8px; }
+.mrow {
+  background: #fff; border: 1px solid #99BBDD; border-radius: 5px;
+  padding: 5px 8px; display: flex; align-items: center; gap: 7px; cursor: pointer;
+}
+.mrow.on { background: #BBDDFF; border-color: #3388BB; }
+.mchk {
+  width: 18px; height: 18px; background: #EEF4FF;
+  border: 1.5px solid #88AACC; border-radius: 3px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 900; color: #1A3A88; flex-shrink: 0;
+}
+.mrow.on .mchk { background: #1A3A88; border-color: #1A3A88; color: #fff; }
+.mname { flex: 1; font-size: 11px; font-weight: 700; color: #1A2A44; }
+.mtag {
+  background: #AADDFF; color: #1A3A88; border: 1px solid #66AADD;
+  border-radius: 8px; padding: 1px 7px; font-size: 9px; font-weight: 900;
+}
+.swrap { display: flex; flex-direction: column; gap: 6px; align-items: center; }
+.scnt { font-size: 11px; color: #224466; font-weight: 700; }
+.sbtn {
+  width: 100%; background: linear-gradient(135deg, #CC2200, #AA1100);
+  color: #fff; border: 2px solid #EE4422; border-radius: 7px;
+  padding: 11px; font-size: 14px; font-weight: 900; font-family: inherit;
+  cursor: pointer; letter-spacing: 0.05em;
+}
+
+/* 承認 */
+.dots { display: flex; justify-content: center; gap: 12px; padding: 14px; }
+.dot { width: 18px; height: 18px; border-radius: 50%; border: 2px solid #88AACC; background: #fff; }
+.dot.on { background: #1A3A88; border-color: #0A2266; }
+.npad { display: grid; grid-template-columns: repeat(3,1fr); gap: 5px; padding: 0 12px 12px; }
+.np {
+  background: #fff; border: 1.5px solid #AACCE0; border-radius: 6px;
+  padding: 10px; font-size: 18px; font-weight: 900; color: #1A2A44;
+  cursor: pointer; font-family: inherit;
+}
+.np:hover { background: #DDEEFF; }
+.np.ok { background: linear-gradient(135deg,#22AA55,#118833); color:#fff; border-color:#117733; }
+.np.del { font-size: 14px; color: #AA1111; }
+
+.pb {
+  background: #fff; border: 1px solid #99BBDD; border-radius: 7px;
+  padding: 8px 10px; margin-bottom: 5px;
+}
+.pt { display: flex; justify-content: space-between; margin-bottom: 2px; }
+.pd { font-size: 11px; font-weight: 900; color: #1A3A88; }
+.pm { font-size: 11px; font-weight: 700; color: #1A2A44; line-height: 1.5; }
+.pdelta { font-size: 10px; color: #1A5A88; font-weight: 700; margin-top: 2px; }
+.pbtns { display: flex; gap: 6px; margin-top: 6px; }
+.bok { flex:1; background:linear-gradient(135deg,#22AA55,#118833); color:#fff; border:none; border-radius:5px; padding:7px; font-size:12px; font-weight:900; font-family:inherit; cursor:pointer; }
+.bng { flex:1; background:#fff; color:#BB1111; border:1.5px solid #FFAAAA; border-radius:5px; padding:7px; font-size:12px; font-weight:900; font-family:inherit; cursor:pointer; }
+
+/* スキル管理 */
+.sitem { background:#fff; border:1px solid #99BBDD; border-radius:7px; padding:7px 10px; display:flex; align-items:center; gap:8px; margin-bottom:3px; }
+.sitem.gld { background:linear-gradient(135deg,#FFE844,#FFD700); border-color:#AA8800; }
+.sname { flex:1; font-size:12px; font-weight:700; color:#1A2A44; }
+.sitem.gld .sname { color:#3A2000; }
+.pbtn { background:#FFEE88; color:#886600; border:1px solid #AA8800; border-radius:3px; padding:2px 7px; font-size:9px; font-weight:900; cursor:pointer; font-family:inherit; }
+.addbtn { width:100%; background:linear-gradient(135deg,#FFD700,#FFAA00); color:#3A2000; border:2px solid #AA8800; border-radius:8px; padding:10px; font-size:13px; font-weight:900; font-family:inherit; cursor:pointer; }
+
+/* 履歴 */
+.hi { background:#fff; border:1px solid #99BBDD; border-radius:7px; padding:7px 10px; margin-bottom:4px; }
+.ht { display:flex; justify-content:space-between; margin-bottom:2px; }
+.hd { font-size:11px; font-weight:900; color:#1A3A88; }
+.badge { font-size:9px; font-weight:900; padding:1px 8px; border-radius:8px; }
+.ok  { background:#CCEECC; color:#115511; }
+.wt  { background:#FFEEAA; color:#775500; }
+.ng  { background:#FFCCCC; color:#AA1111; }
+.hm { font-size:11px; font-weight:700; color:#1A2A44; line-height:1.4; }
+.hdt{ font-size:10px; color:#1A4A88; font-weight:700; margin-top:2px; }
+
+/* 設定 */
+.setcard { border:1.5px solid #99BBDD; border-radius:8px; overflow:hidden; margin-bottom:6px; }
+.seth { background:linear-gradient(90deg,#1A3A88,#2A5AAA); color:#fff; font-size:11px; font-weight:900; padding:4px 10px; }
+.setr { display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border-bottom:1px solid rgba(120,170,200,0.3); background:#E8F4FA; }
+.setr:last-child { border-bottom:none; }
+.setl { font-size:12px; font-weight:700; color:#224466; }
+.setv { font-size:12px; font-weight:900; color:#111; }
+.seti { background:#E4F4FF; border:1px solid #88AACC; border-radius:4px; padding:3px 7px; font-size:12px; font-weight:700; color:#111; font-family:inherit; text-align:right; width:110px; }
+.slb { font-size:10px; font-weight:900; color:rgba(255,255,255,0.8); letter-spacing:0.08em; margin:3px 0 2px; }
+
+/* ボトムナビ */
+.bnav {
+  position:fixed; bottom:0; left:50%; transform:translateX(-50%);
+  width:100%; max-width:980px;
+  background:linear-gradient(180deg,#1A2A55,#0A1A33);
+  border-top:2px solid #2A4A88; display:flex;
+}
+.nbtn { flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; padding:7px 4px; cursor:pointer; border:none; background:transparent; font-family:inherit; }
+.nbtn.on .nic { color:#FFD700; }
+.nbtn.on .nlb { color:#FFD700; }
+.nic { font-size:18px; color:rgba(150,200,240,0.5); }
+.nlb { font-size:9px; font-weight:700; color:rgba(150,200,240,0.5); }
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <button onclick="go('home')" class="on" id="tn-home">選手カード</button>
+  <button onclick="go('training')" id="tn-training">練習入力</button>
+  <button onclick="go('approval')" id="tn-approval">親承認</button>
+  <button onclick="go('skills')" id="tn-skills">スキル管理</button>
+  <button onclick="go('history')" id="tn-history">履歴</button>
+  <button onclick="go('settings')" id="tn-settings">設定</button>
+</div>
+
+<!-- ════ 選手カード ════ -->
+<div class="scr on" id="s-home">
+
+  <!-- ── パワプロカード本体（横幅いっぱい） ── -->
+  <div class="card">
+
+    <!-- タブ：選手能力・プロフィール・（将来：学校成績など） -->
+    <div class="tabs">
+      <div class="t-arr">◀ L1</div>
+      <div class="tab on">選手能力</div>
+      <div class="tab tel">プロフィール</div>
+      <div class="t-arr">R1 ▶</div>
+    </div>
+
+    <!-- 選手名行（率なし） -->
+    <div class="row-name">
+      <div class="namebox">こんどう</div>
+      <div class="teamico">🏀</div>
+      <div class="numbox">7</div>
+      <div class="seiseki">
+        <span class="sei-lbl">成　績</span>
+        <span class="sei-v" style="margin-left:6px;">12</span><span class="sei-u">試合</span>
+        <span class="sei-v" style="margin-left:6px;">48</span><span class="sei-u">点</span>
+        <span class="sei-v" style="margin-left:6px;">23</span><span class="sei-u">ast</span>
+      </div>
+    </div>
+
+    <!-- 守備位置行 -->
+    <div class="row-pos">
+      <span class="pos-lbl">ポジション</span>
+      <span class="pos-val">ガード</span>
+      <div style="display:flex;flex-direction:column;gap:2px;margin-left:6px;">
+        <div class="badge-star">★64</div>
+        <div class="badge-dia">◆ 3</div>
+      </div>
+      <div class="chara">🏀</div>
+      <div style="display:flex;gap:10px;margin-left:auto;align-items:center;">
+        <div class="form-val"><span class="form-pill">身長</span>148 cm</div>
+        <div class="form-val"><span class="form-pill">体重</span>38 kg</div>
+        <div class="form-val"><span class="form-pill">スタイル</span>ドリブラー</div>
+      </div>
+    </div>
+
+    <!-- メインエリア -->
+    <div class="main">
+
+      <!-- 左：ステータス（プレー行は矢印なし・値のみ） -->
+      <div class="stat-col">
+        <div class="si">
+          <div class="slbl">プレー</div>
+          <span class="svl" style="font-size:14px;color:#333;text-align:right;padding-right:4px;">ガード</span>
+        </div>
+        <div class="si"><div class="slbl">ハンドリング</div><span class="srk B">B</span><span class="svl">82</span></div>
+        <div class="si"><div class="slbl">フィジカル</div><span class="srk D">D</span><span class="svl">54</span></div>
+        <div class="si"><div class="slbl">スピード</div><span class="srk A">A</span><span class="svl A">82</span></div>
+        <div class="si"><div class="slbl">シュート</div><span class="srk C">C</span><span class="svl">60</span></div>
+        <div class="si"><div class="slbl">ディフェンス</div><span class="srk D">D</span><span class="svl">48</span></div>
+        <div class="si"><div class="slbl">パス</div><span class="srk C">C</span><span class="svl">62</span></div>
+        <div class="si"><div class="slbl">メンタル</div><span class="srk D">D</span><span class="svl">44</span></div>
+      </div>
+
+      <!-- 右：スキルのみ（特殊能力セルは削除） -->
+      <div class="ab-col">
+        <div class="skgrid">
+          <div class="sk gold">速攻の鬼</div>
+          <div class="sk">パワーヒッター</div>
+          <div class="sk">広角打法</div>
+          <div class="sk">固め打ち</div>
+          <div class="sk">初球〇</div>
+          <div class="sk">声出し隊長</div>
+          <div class="sk">ホーム突入</div>
+          <div class="sk gold">左手も使える</div>
+          <div class="sk mt"></div><div class="sk mt"></div><div class="sk mt"></div><div class="sk mt"></div>
+          <div class="sk mt"></div><div class="sk mt"></div><div class="sk mt"></div><div class="sk mt"></div>
+          <div class="sk mt"></div><div class="sk mt"></div><div class="sk mt"></div><div class="sk mt"></div>
+          <div class="sk mt"></div><div class="sk mt"></div><div class="sk mt"></div><div class="sk mt"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 下段：サイドパネル3列 ── -->
+  <div class="side-row">
+
+    <div class="sc">
+      <div class="sh">📅 今日の練習状況</div>
+      <div class="sb">
+        <div style="font-size:11px;font-weight:700;color:#335577;margin-bottom:5px;">2026年6月26日（金）</div>
+        <div class="pb" style="margin-bottom:0;">
+          <div class="pm">その場ドリブル・股下ドリブル・フリースロー20本</div>
+          <div class="pdelta">→ ハンドリング+2　シュート+1</div>
+          <div style="margin-top:4px;"><span class="badge wt">承認待ち</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sc">
+      <div class="sh">📈 最近の成長</div>
+      <div class="sb" style="display:flex;flex-direction:column;gap:5px;">
+        <div style="display:flex;justify-content:space-between;font-size:11px;">
+          <span style="font-weight:700;color:#335577;">6/24（火）承認済み</span>
+          <span style="font-weight:900;color:#1A5A88;">スピード+1 / フィジカル+1</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;">
+          <span style="font-weight:700;color:#335577;">6/23（月）承認済み</span>
+          <span style="font-weight:900;color:#1A5A88;">ハンドリング+1 / シュート+1</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;">
+          <span style="font-weight:700;color:#335577;">6/21（土）却下</span>
+          <span style="font-weight:900;color:#AA1111;">加算なし</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sc">
+      <div class="sh">🔥 継続記録</div>
+      <div class="sb" style="display:flex;gap:16px;justify-content:center;padding:6px 0;">
+        <div style="text-align:center;">
+          <div style="font-size:28px;font-weight:900;color:#1A4A88;">42</div>
+          <div style="font-size:10px;font-weight:700;color:#557799;">累計練習日数</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:28px;font-weight:900;color:#CC8800;">5</div>
+          <div style="font-size:10px;font-weight:700;color:#557799;">連続練習日数</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:28px;font-weight:900;color:#228844;">128</div>
+          <div style="font-size:10px;font-weight:700;color:#557799;">累計加算ポイント</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="spacer"></div>
+</div>
+
+<!-- ════ 練習入力 ════ -->
+<div class="scr" id="s-training">
+<div style="display:flex;gap:8px;align-items:flex-start;width:100%;">
+  <div style="flex:1;min-width:0;">
+  <div class="sc">
+    <div class="sh">📅 2026年6月26日（金）の練習記録</div>
+    <div class="sb">
+      <div class="cat">🏀 ハンドリング系</div>
+      <div class="mlist">
+        <div class="mrow on" onclick="tog(this)"><div class="mchk">✓</div><span class="mname">その場ドリブル（左右各1分）</span><span class="mtag">ハンドリング+1</span></div>
+        <div class="mrow" onclick="tog(this)"><div class="mchk"></div><span class="mname">8の字ドリブル</span><span class="mtag">ハンドリング+1</span></div>
+        <div class="mrow on" onclick="tog(this)"><div class="mchk">✓</div><span class="mname">股下ドリブル</span><span class="mtag">ハンドリング+1</span></div>
+      </div>
+      <div class="cat">🎯 シュート系</div>
+      <div class="mlist">
+        <div class="mrow on" onclick="tog(this)"><div class="mchk">✓</div><span class="mname">フリースロー20本</span><span class="mtag">シュート+1</span></div>
+        <div class="mrow" onclick="tog(this)"><div class="mchk"></div><span class="mname">レイアップ左右20本</span><span class="mtag">シュート+1</span></div>
+      </div>
+    </div>
+  </div>
+  </div>
+  <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;">
+  <div class="sc">
+    <div class="sb">
+      <div class="cat">⚡ スピード系</div>
+      <div class="mlist">
+        <div class="mrow" onclick="tog(this)"><div class="mchk"></div><span class="mname">ラダートレーニング</span><span class="mtag">スピード+1</span></div>
+        <div class="mrow" onclick="tog(this)"><div class="mchk"></div><span class="mname">ダッシュ×10本</span><span class="mtag">スピード+1</span></div>
+      </div>
+      <div class="cat">💪 フィジカル系</div>
+      <div class="mlist">
+        <div class="mrow" onclick="tog(this)"><div class="mchk"></div><span class="mname">腕立て伏せ20回</span><span class="mtag">フィジカル+1</span></div>
+        <div class="mrow" onclick="tog(this)"><div class="mchk"></div><span class="mname">スクワット30回</span><span class="mtag">フィジカル+1</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="swrap"><div class="scnt" id="cnt">3つ選択中</div><button class="sbtn">親に送る 📨</button></div>
+  </div>
+</div>
+<div class="spacer"></div>
+</div>
+
+<!-- ════ 親承認 ════ -->
+<div class="scr" id="s-approval">
+<div style="display:flex;gap:8px;align-items:flex-start;width:100%;">
+  <div style="flex:0 0 240px;"><div class="sc">
+    <div class="sh">🔐 親パスワード認証</div>
+    <div class="dots"><div class="dot on"></div><div class="dot on"></div><div class="dot on"></div><div class="dot"></div></div>
+    <div class="npad">
+      <button class="np">1</button><button class="np">2</button><button class="np">3</button>
+      <button class="np">4</button><button class="np">5</button><button class="np">6</button>
+      <button class="np">7</button><button class="np">8</button><button class="np">9</button>
+      <button class="np del">⌫</button><button class="np">0</button><button class="np ok">OK</button>
+    </div>
+  </div></div>
+  <div style="flex:1;min-width:0;"><div class="sc">
+    <div class="sh">📋 承認待ちの練習記録</div>
+    <div class="sb">
+      <div class="pb"><div class="pt"><span class="pd">2026年6月26日（今日）</span></div><div class="pm">その場ドリブル・股下ドリブル・フリースロー20本</div><div class="pdelta">→ ハンドリング+2　シュート+1</div><div class="pbtns"><button class="bok">✅ 承認する</button><button class="bng">✗ 却下</button></div></div>
+      <div class="pb"><div class="pt"><span class="pd">2026年6月24日（火）</span></div><div class="pm">ラダートレーニング・腕立て伏せ20回</div><div class="pdelta">→ スピード+1　フィジカル+1</div><div class="pbtns"><button class="bok">✅ 承認する</button><button class="bng">✗ 却下</button></div></div>
+    </div>
+  </div></div>
+</div>
+<div class="spacer"></div>
+</div>
+
+<!-- ════ スキル管理 ════ -->
+<div class="scr" id="s-skills">
+<div style="display:flex;gap:8px;align-items:flex-start;width:100%;">
+  <div style="flex:1;"><div class="sc"><div class="sh">👑 金枠スキル</div><div class="sb">
+    <div class="sitem gld"><span>👑</span><span class="sname">速攻の鬼</span><span style="font-size:10px;color:#886600;font-weight:900;">金枠</span></div>
+    <div class="sitem gld"><span>👑</span><span class="sname">左手も使える</span><span style="font-size:10px;color:#886600;font-weight:900;">金枠</span></div>
+  </div></div></div>
+  <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
+    <div class="sc"><div class="sh">⭐ 通常スキル</div><div class="sb">
+      <div class="sitem"><span>⭐</span><span class="sname">初球〇</span><button class="pbtn">金枠に昇格 ↑</button></div>
+      <div class="sitem"><span>⭐</span><span class="sname">声出し隊長</span><button class="pbtn">金枠に昇格 ↑</button></div>
+      <div class="sitem"><span>⭐</span><span class="sname">ホーム突入</span><button class="pbtn">金枠に昇格 ↑</button></div>
+    </div></div>
+    <button class="addbtn">＋ 新しいスキルを認定する</button>
+  </div>
+</div>
+<div class="spacer"></div>
+</div>
+
+<!-- ════ 履歴 ════ -->
+<div class="scr" id="s-history">
+<div style="display:flex;gap:8px;align-items:flex-start;width:100%;">
+  <div style="flex:1;"><div class="sc"><div class="sh">📋 練習履歴</div><div class="sb">
+    <div class="hi"><div class="ht"><span class="hd">2026年6月26日（今日）</span><span class="badge wt">承認待ち</span></div><div class="hm">その場ドリブル・股下ドリブル・フリースロー20本</div></div>
+    <div class="hi"><div class="ht"><span class="hd">2026年6月24日（火）</span><span class="badge ok">承認済み ✓</span></div><div class="hm">ラダートレーニング・腕立て伏せ20回</div><div class="hdt">スピード+1 ／ フィジカル+1</div></div>
+  </div></div></div>
+  <div style="flex:1;"><div class="sc"><div class="sh">　</div><div class="sb">
+    <div class="hi"><div class="ht"><span class="hd">2026年6月23日（月）</span><span class="badge ok">承認済み ✓</span></div><div class="hm">8の字ドリブル・フリースロー20本・スクワット30回</div><div class="hdt">ハンドリング+1 ／ シュート+1 ／ フィジカル+1</div></div>
+    <div class="hi"><div class="ht"><span class="hd">2026年6月21日（土）</span><span class="badge ng">却下</span></div><div class="hm">自主練（自分で考えて実施）</div></div>
+  </div></div></div>
+</div>
+<div class="spacer"></div>
+</div>
+
+<!-- ════ 設定 ════ -->
+<div class="scr" id="s-settings">
+<div style="display:flex;gap:8px;align-items:flex-start;width:100%;">
+  <div style="flex:1;">
+    <div class="slb">👤 プロフィール</div>
+    <div class="setcard"><div class="seth">選手情報</div>
+      <div class="setr"><span class="setl">選手名</span><input class="seti" value="こんどう"></div>
+      <div class="setr"><span class="setl">背番号</span><input class="seti" value="7" style="width:70px"></div>
+      <div class="setr"><span class="setl">ポジション</span><span class="setv">ガード ›</span></div>
+      <div class="setr"><span class="setl">プレースタイル</span><span class="setv">ドリブラー ›</span></div>
+      <div class="setr"><span class="setl">身長</span><input class="seti" value="148" style="width:70px"> <span style="font-size:12px;color:#446688;margin-left:4px;">cm</span></div>
+      <div class="setr"><span class="setl">体重</span><input class="seti" value="38" style="width:70px"> <span style="font-size:12px;color:#446688;margin-left:4px;">kg</span></div>
+    </div>
+    <div class="slb">📊 成績</div>
+    <div class="setcard"><div class="seth">試合成績</div>
+      <div class="setr"><span class="setl">出場試合数</span><input class="seti" value="12" style="width:70px"></div>
+      <div class="setr"><span class="setl">総得点</span><input class="seti" value="48" style="width:70px"></div>
+      <div class="setr"><span class="setl">総アシスト</span><input class="seti" value="23" style="width:70px"></div>
+    </div>
+  </div>
+  <div style="flex:1;">
+    <div class="slb">🔐 セキュリティ</div>
+    <div class="setcard"><div class="seth">認証設定</div>
+      <div class="setr"><span class="setl">親パスワード変更</span><span class="setv">›</span></div>
+    </div>
+    <div class="slb">🏀 練習メニュー</div>
+    <div class="setcard"><div class="seth">メニュー設定</div>
+      <div class="setr"><span class="setl">メニューを編集・追加</span><span class="setv">›</span></div>
+    </div>
+  </div>
+</div>
+<div class="spacer"></div>
+</div>
+
+<!-- ボトムナビ -->
+<div class="bnav">
+  <button class="nbtn on" onclick="go('home')" id="bn-home"><span class="nic">🏠</span><span class="nlb">ホーム</span></button>
+  <button class="nbtn" onclick="go('training')" id="bn-training"><span class="nic">🏀</span><span class="nlb">練習</span></button>
+  <button class="nbtn" onclick="go('approval')" id="bn-approval"><span class="nic">✅</span><span class="nlb">承認</span></button>
+  <button class="nbtn" onclick="go('skills')" id="bn-skills"><span class="nic">⭐</span><span class="nlb">スキル</span></button>
+  <button class="nbtn" onclick="go('history')" id="bn-history"><span class="nic">📋</span><span class="nlb">履歴</span></button>
+  <button class="nbtn" onclick="go('settings')" id="bn-settings"><span class="nic">⚙️</span><span class="nlb">設定</span></button>
+</div>
+
+<script>
+function go(n){
+  document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on'));
+  document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('on'));
+  document.querySelectorAll('.nbtn').forEach(b=>b.classList.remove('on'));
+  document.getElementById('s-'+n).classList.add('on');
+  document.getElementById('tn-'+n).classList.add('on');
+  document.getElementById('bn-'+n).classList.add('on');
+}
+function tog(el){
+  el.classList.toggle('on');
+  el.querySelector('.mchk').textContent=el.classList.contains('on')?'✓':'';
+  const n=document.querySelectorAll('#s-training .mrow.on').length;
+  document.getElementById('cnt').textContent=n+'つ選択中';
+}
+</script>
+</body>
+</html>
