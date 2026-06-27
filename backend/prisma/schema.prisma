@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Player {
+  id           Int    @id @default(autoincrement())
+  name         String
+  number       Int
+  position     String
+  playStyle    String
+  height       Float
+  weight       Float
+  gamesPlayed  Int    @default(0)
+  totalPoints  Int    @default(0)
+  totalAssists Int    @default(0)
+  handling     Int    @default(0)
+  physical     Int    @default(0)
+  speed        Int    @default(0)
+  shooting     Int    @default(0)
+  defense      Int    @default(0)
+  passing      Int    @default(0)
+  mental       Int    @default(0)
+
+  trainingLogs TrainingLog[]
+  skills       Skill[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model TrainingLog {
+  id         Int       @id @default(autoincrement())
+  playerId   Int
+  player     Player    @relation(fields: [playerId], references: [id])
+  date       DateTime
+  menus      Json
+  approved   Boolean   @default(false)
+  approvedAt DateTime?
+  rejected   Boolean   @default(false)
+  statsDelta Json      @default("{}")
+  createdAt  DateTime  @default(now())
+}
+
+model Skill {
+  id          Int      @id @default(autoincrement())
+  playerId    Int
+  player      Player   @relation(fields: [playerId], references: [id])
+  name        String
+  isGold      Boolean  @default(false)
+  certifiedAt DateTime @default(now())
+}
+
+model TrainingMenu {
+  id          Int     @id @default(autoincrement())
+  name        String
+  description String?
+  targetStat  String
+  deltaValue  Int     @default(1)
+  isActive    Boolean @default(true)
+  createdAt   DateTime @default(now())
+}

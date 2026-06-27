@@ -1,0 +1,28 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'M PLUS 1p', sans-serif;
+  background: #6B9AB8;
+  min-height: 100vh;
+}
+
+@media (orientation: portrait) {
+  body::before {
+    content: "📱 横向きにしてください";
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: #1A3A6A;
+    color: #FFD700;
+    font-size: 22px;
+    font-weight: 900;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: sans-serif;
+  }
+}

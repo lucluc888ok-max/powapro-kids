@@ -1,0 +1,119 @@
+import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { playerApi } from '../lib/api';
+
+const sc = {
+  card: { border: '1.5px solid #99BBDD', borderRadius: 8, overflow: 'hidden' as const, marginBottom: 6 },
+  head: { background: 'linear-gradient(90deg,#1A3A88,#2A5AAA)', color: '#fff', fontSize: 11, fontWeight: 900, padding: '4px 10px' },
+  row: { display: 'flex' as const, justifyContent: 'space-between' as const, alignItems: 'center' as const, padding: '8px 10px', borderBottom: '1px solid rgba(120,170,200,0.3)', background: '#E8F4FA' },
+  label: { fontSize: 12, fontWeight: 700, color: '#224466' },
+  input: { background: '#E4F4FF', border: '1px solid #88AACC', borderRadius: 4, padding: '3px 7px', fontSize: 12, fontWeight: 700, color: '#111', fontFamily: 'inherit' as const, textAlign: 'right' as const, width: 110 },
+};
+
+export default function Settings() {
+  const qc = useQueryClient();
+  const { data: player } = useQuery({ queryKey: ['player'], queryFn: playerApi.get });
+
+  const [form, setForm] = useState({ name: '', number: 7, position: 'ガード', playStyle: 'ドリブラー', height: 148, weight: 38 });
+  const [stats, setStats] = useState({ gamesPlayed: 0, totalPoints: 0, totalAssists: 0 });
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    if (player) {
+      setForm({ name: player.name, number: player.number, position: player.position, playStyle: player.playStyle, height: player.height, weight: player.weight });
+      setStats({ gamesPlayed: player.gamesPlayed, totalPoints: player.totalPoints, totalAssists: player.totalAssists });
+    }
+  }, [player]);
+
+  const updateProfile = useMutation({
+    mutationFn: () => playerApi.update(form),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['player'] }); setSaved(true); setTimeout(() => setSaved(false), 2000); },
+  });
+
+  const updateStats = useMutation({
+    mutationFn: () => playerApi.updateStats(stats),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['player'] }); setSaved(true); setTimeout(() => setSaved(false), 2000); },
+  });
+
+  const positions = ['ガード', 'フォワード', 'センター'];
+  const styles = ['ドリブラー', 'シューター', 'ポイントゲッター', 'オールラウンダー'];
+
+  return (
+    <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: 8, width: '100%', maxWidth: 980, margin: '0 auto' }}>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 10, fontWeight: 900, color: 'rgba(255,255,255,0.8)', letterSpacing: '0.08em', margin: '3px 0 2px' }}>👤 プロフィール</div>
+        <div style={sc.card}>
+          <div style={sc.head}>選手情報</div>
+          <div style={{ ...sc.row }}>
+            <span style={sc.label}>選手名</span>
+            <input style={sc.input} value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} />
+          </div>
+          <div style={{ ...sc.row }}>
+            <span style={sc.label}>背番号</span>
+            <input style={{ ...sc.input, width: 70 }} type="number" value={form.number} onChange={e => setForm(p => ({ ...p, number: +e.target.value }))} />
+          </div>
+          <div style={{ ...sc.row }}>
+            <span style={sc.label}>ポジション</span>
+            <select style={{ ...sc.input, width: 120 }} value={form.position} onChange={e => setForm(p => ({ ...p, position: e.target.value }))}>
+              {positions.map(p => <option key={p}>{p}</option>)}
+            </select>
+          </div>
+          <div style={{ ...sc.row }}>
+            <span style={sc.label}>プレースタイル</span>
+            <select style={{ ...sc.input, width: 140 }} value={form.playStyle} onChange={e => setForm(p => ({ ...p, playStyle: e.target.value }))}>
+              {styles.map(s => <option key={s}>{s}</option>)}
+            </select>
+          </div>
+          <div style={{ ...sc.row }}>
+            <span style={sc.label}>身長</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <input style={{ ...sc.input, width: 70 }} type="number" value={form.height} onChange={e => setForm(p => ({ ...p, height: +e.target.value }))} />
+              <span style={{ fontSize: 12, color: '#446688' }}>cm</span>
+            </div>
+          </div>
+          <div style={{ ...sc.row, borderBottom: 'none' }}>
+            <span style={sc.label}>体重</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <input style={{ ...sc.input, width: 70 }} type="number" value={form.weight} onChange={e => setForm(p => ({ ...p, weight: +e.target.value }))} />
+              <span style={{ fontSize: 12, color: '#446688' }}>kg</span>
+            </div>
+          </div>
+        </div>
+        <button onClick={() => updateProfile.mutate()} style={{ width: '100%', background: 'linear-gradient(135deg,#1A3A88,#2A5AAA)', color: '#fff', border: 'none', borderRadius: 8, padding: '10px', fontSize: 13, fontWeight: 900, fontFamily: 'inherit', cursor: 'pointer', marginBottom: 6 }}>
+          {saved ? '保存しました ✓' : 'プロフィールを保存'}
+        </button>
+      </div>
+
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 10, fontWeight: 900, color: 'rgba(255,255,255,0.8)', letterSpacing: '0.08em', margin: '3px 0 2px' }}>📊 成績</div>
+        <div style={sc.card}>
+          <div style={sc.head}>試合成績</div>
+          <div style={sc.row}>
+            <span style={sc.label}>出場試合数</span>
+            <input style={{ ...sc.input, width: 70 }} type="number" value={stats.gamesPlayed} onChange={e => setStats(p => ({ ...p, gamesPlayed: +e.target.value }))} />
+          </div>
+          <div style={sc.row}>
+            <span style={sc.label}>総得点</span>
+            <input style={{ ...sc.input, width: 70 }} type="number" value={stats.totalPoints} onChange={e => setStats(p => ({ ...p, totalPoints: +e.target.value }))} />
+          </div>
+          <div style={{ ...sc.row, borderBottom: 'none' }}>
+            <span style={sc.label}>総アシスト</span>
+            <input style={{ ...sc.input, width: 70 }} type="number" value={stats.totalAssists} onChange={e => setStats(p => ({ ...p, totalAssists: +e.target.value }))} />
+          </div>
+        </div>
+        <button onClick={() => updateStats.mutate()} style={{ width: '100%', background: 'linear-gradient(135deg,#1A3A88,#2A5AAA)', color: '#fff', border: 'none', borderRadius: 8, padding: '10px', fontSize: 13, fontWeight: 900, fontFamily: 'inherit', cursor: 'pointer', marginBottom: 6 }}>
+          成績を保存
+        </button>
+
+        <div style={{ fontSize: 10, fontWeight: 900, color: 'rgba(255,255,255,0.8)', letterSpacing: '0.08em', margin: '3px 0 2px' }}>🔐 セキュリティ</div>
+        <div style={sc.card}>
+          <div style={sc.head}>認証設定</div>
+          <div style={{ ...sc.row, borderBottom: 'none' }}>
+            <span style={sc.label}>親パスワード</span>
+            <span style={{ fontSize: 12, color: '#888' }}>Railway環境変数で設定</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
