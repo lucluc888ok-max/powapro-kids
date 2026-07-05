@@ -147,11 +147,23 @@ export default function Training() {
       {/* 左列：コーチメニュー */}
       <div style={{ flex: 2, minWidth: 0 }}>
         <div style={sc.card}>
-          <div style={sc.head}>
-            🏋️ コーチメニュー
-            <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 700, opacity: 0.8 }}>
-              （{DAY_JP[todayDayIdx]}曜：メニュー{todayGroup}）
+          <div style={{ ...sc.head, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span>
+              🏋️ コーチメニュー
+              <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 700, opacity: 0.8 }}>
+                （{DAY_JP[todayDayIdx]}曜：メニュー{todayGroup}）
+              </span>
             </span>
+            <div style={{ display: 'flex', gap: 4 }}>
+              <button
+                onClick={() => setSelected(new Set(coachMenus.map(m => m.id)))}
+                style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', border: '1px solid rgba(255,255,255,0.4)', borderRadius: 4, padding: '2px 8px', fontSize: 10, fontWeight: 900, cursor: 'pointer', fontFamily: 'inherit' }}
+              >全選択</button>
+              <button
+                onClick={() => setSelected(new Set())}
+                style={{ background: 'rgba(0,0,0,0.2)', color: '#fff', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 4, padding: '2px 8px', fontSize: 10, fontWeight: 900, cursor: 'pointer', fontFamily: 'inherit' }}
+              >解除</button>
+            </div>
           </div>
           <div style={sc.body}>
             {coachMenus.length === 0 ? (
