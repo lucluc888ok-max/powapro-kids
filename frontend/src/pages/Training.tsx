@@ -2,22 +2,14 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { trainingApi, menuScheduleApi } from '../lib/api';
 
-const CATEGORY_MAP: Record<string, string> = {
-  handling: '🏀 ハンドリング系',
-  shooting: '🎯 シュート系',
-  speed:    '⚡ スピード系',
-  defense:  '🛡️ ディフェンス系',
-  passing:  '🤝 パス系',
-  physical: '💪 フィジカル系',
-  mental:   '🧠 メンタル系',
-};
-
 const STAT_JP: Record<string, string> = {
   handling: 'ハンドリング', physical: 'フィジカル', speed: 'スピード',
   shooting: 'シュート', defense: 'ディフェンス', passing: 'パス', mental: 'メンタル',
 };
 
 const DAY_KEYS = ['sunGroup','monGroup','tueGroup','wedGroup','thuGroup','friGroup','satGroup'] as const;
+const DAY_CODES = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+const DAY_JP    = ['日','月','火','水','木','金','土'];
 
 const sc = {
   card: { background: '#D8EEFA', border: '2px solid #88BBDD', borderRadius: 8, overflow: 'hidden' as const, boxShadow: '0 2px 8px rgba(0,0,0,0.18)' },
@@ -66,10 +58,10 @@ function CoachMenuItem({ m, selected, onToggle }: { m: Menu; selected: boolean; 
             <span style={{ background: '#AADDFF', color: '#1A3A88', border: '1px solid #66AADD', borderRadius: 8, padding: '1px 7px', fontSize: 9, fontWeight: 900, whiteSpace: 'nowrap' }}>
               {STAT_JP[m.targetStat]}+1
             </span>
+            {m.detail && (
+              <span style={{ fontSize: 10, color: '#557799', whiteSpace: 'nowrap' }}>{m.detail}</span>
+            )}
           </div>
-          {m.detail && (
-            <div style={{ fontSize: 10, color: '#446688', marginTop: 2 }}>{m.detail}</div>
-          )}
           {videos.length > 0 && (
             <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 6 }} onClick={e => e.stopPropagation()}>
               {videos.map((v, i) => (
@@ -93,57 +85,38 @@ function CoachMenuItem({ m, selected, onToggle }: { m: Menu; selected: boolean; 
   );
 }
 
-function SelfMenuItem({ m, selected, onToggle }: { m: Menu; selected: boolean; onToggle: () => void }) {
-  return (
-    <div onClick={onToggle} style={{
-      background: selected ? '#BBDDFF' : '#fff',
-      border: `1px solid ${selected ? '#3388BB' : '#99BBDD'}`,
-      borderRadius: 5, padding: '5px 8px',
-      display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer',
-    }}>
-      <div style={{
-        width: 18, height: 18, flexShrink: 0,
-        background: selected ? '#1A3A88' : '#EEF4FF',
-        border: `1.5px solid ${selected ? '#1A3A88' : '#88AACC'}`,
-        borderRadius: 3, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 11, fontWeight: 900, color: selected ? '#fff' : '#1A3A88',
-      }}>
-        {selected ? '✓' : ''}
-      </div>
-      <span style={{ flex: 1, fontSize: 11, fontWeight: 700, color: '#1A2A44' }}>{m.name}</span>
-      <span style={{ background: '#AADDFF', color: '#1A3A88', border: '1px solid #66AADD', borderRadius: 8, padding: '1px 7px', fontSize: 9, fontWeight: 900 }}>
-        {STAT_JP[m.targetStat]}+1
-      </span>
-    </div>
-  );
-}
-
 export default function Training() {
   const qc = useQueryClient();
   const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [teamParticipated, setTeamParticipated] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState('');
 
   const { data: menus = [] } = useQuery<Menu[]>({ queryKey: ['menus'], queryFn: trainingApi.getMenus });
   const { data: schedule } = useQuery({ queryKey: ['menu-schedule'], queryFn: menuScheduleApi.get });
 
+  const todayDayIdx = new Date().getDay();
+  const todayGroup: string = schedule ? schedule[DAY_KEYS[todayDayIdx]] : 'A';
+  const teamDaysList: string[] = schedule?.teamDays ? schedule.teamDays.split(',') : ['MON','SAT','SUN'];
+  const isTeamDay = teamDaysList.includes(DAY_CODES[todayDayIdx]);
+
+  const coachMenus = menus.filter(m =>
+    m.isCoachMenu && m.menuGroup !== 'TEAM' &&
+    (m.menuGroup === todayGroup || m.menuGroup === null)
+  );
+  const teamMenus = menus.filter(m => m.menuGroup === 'TEAM');
+
   const submit = useMutation({
-    mutationFn: () => trainingApi.submitLog(Array.from(selected)),
+    mutationFn: () => {
+      const ids = [
+        ...Array.from(selected),
+        ...(teamParticipated ? teamMenus.map(m => m.id) : []),
+      ];
+      return trainingApi.submitLog(ids);
+    },
     onSuccess: () => { setDone(true); setError(''); qc.invalidateQueries({ queryKey: ['history'] }); },
     onError: (e: any) => setError(e.response?.data?.error || 'エラーが発生しました'),
   });
-
-  // 今日のグループを決定
-  const todayDayIdx = new Date().getDay(); // 0=日〜6=土
-  const todayGroup: string = schedule ? schedule[DAY_KEYS[todayDayIdx]] : 'A';
-  const isNone = todayGroup === 'NONE';
-
-  // メニュー分類
-  const coachMenus = menus.filter(m =>
-    m.isCoachMenu && !isNone &&
-    (m.menuGroup === todayGroup || m.menuGroup === null)
-  );
-  const selfMenus = menus.filter(m => !m.isCoachMenu);
 
   const toggle = (id: number) => setSelected(prev => {
     const s = new Set(prev);
@@ -151,13 +124,8 @@ export default function Training() {
     return s;
   });
 
-  const grouped = selfMenus.reduce((acc: Record<string, Menu[]>, m) => {
-    if (!acc[m.targetStat]) acc[m.targetStat] = [];
-    acc[m.targetStat].push(m);
-    return acc;
-  }, {});
-
-  const DAY_JP = ['日','月','火','水','木','金','土'];
+  const totalSelected = selected.size + (teamParticipated ? 1 : 0);
+  const canSubmit = selected.size > 0 || teamParticipated;
 
   if (done) return (
     <div style={{ padding: 20, textAlign: 'center' }}>
@@ -165,7 +133,7 @@ export default function Training() {
         <div style={{ fontSize: 40, marginBottom: 12 }}>📨</div>
         <div style={{ fontSize: 16, fontWeight: 900, color: '#1A3A88', marginBottom: 8 }}>親に送りました！</div>
         <div style={{ fontSize: 12, color: '#557799' }}>承認されたらステータスが上がります</div>
-        <button onClick={() => { setDone(false); setSelected(new Set()); }}
+        <button onClick={() => { setDone(false); setSelected(new Set()); setTeamParticipated(false); }}
           style={{ marginTop: 16, background: '#1A3A88', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 24px', fontSize: 14, fontWeight: 900, cursor: 'pointer', fontFamily: 'inherit' }}>
           戻る
         </button>
@@ -177,39 +145,33 @@ export default function Training() {
     <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: 8, width: '100%', maxWidth: 980, margin: '0 auto' }}>
 
       {/* 左列：コーチメニュー */}
-      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div style={{ flex: 2, minWidth: 0 }}>
         <div style={sc.card}>
           <div style={sc.head}>
-            🏋️ 今週のコーチメニュー
+            🏋️ コーチメニュー
             <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 700, opacity: 0.8 }}>
-              {isNone ? '（本日はコーチメニューなし）' : `（${DAY_JP[todayDayIdx]}曜：メニュー${todayGroup}）`}
+              （{DAY_JP[todayDayIdx]}曜：メニュー{todayGroup}）
             </span>
           </div>
           <div style={sc.body}>
-            {isNone ? (
-              <div style={{ fontSize: 11, color: '#557799', padding: '8px 0' }}>
-                今日はチーム練習日です。下の自主練メニューから選択できます。
-              </div>
-            ) : coachMenus.length === 0 ? (
+            {coachMenus.length === 0 ? (
               <div style={{ fontSize: 11, color: '#557799', padding: '8px 0' }}>読み込み中...</div>
             ) : (
               <>
-                {/* グループ固有メニュー */}
                 {coachMenus.filter(m => m.menuGroup !== null).length > 0 && (
                   <>
                     <div style={{ background: 'linear-gradient(90deg,#1A3A88,#2A5AAA)', color: '#fff', fontSize: 10, fontWeight: 900, padding: '3px 8px', borderRadius: 3, marginBottom: 6 }}>
-                      ハンドリング &amp; ドリブル（メニュー{todayGroup}）
+                      メニュー{todayGroup}
                     </div>
                     {coachMenus.filter(m => m.menuGroup !== null).map(m => (
                       <CoachMenuItem key={m.id} m={m} selected={selected.has(m.id)} onToggle={() => toggle(m.id)} />
                     ))}
                   </>
                 )}
-                {/* 共通メニュー */}
                 {coachMenus.filter(m => m.menuGroup === null).length > 0 && (
                   <>
                     <div style={{ background: 'linear-gradient(90deg,#886600,#AA8800)', color: '#fff', fontSize: 10, fontWeight: 900, padding: '3px 8px', borderRadius: 3, marginBottom: 6, marginTop: 8 }}>
-                      アジリティ &amp; ジャンプ（共通）
+                      共通パート
                     </div>
                     {coachMenus.filter(m => m.menuGroup === null).map(m => (
                       <CoachMenuItem key={m.id} m={m} selected={selected.has(m.id)} onToggle={() => toggle(m.id)} />
@@ -222,40 +184,53 @@ export default function Training() {
         </div>
       </div>
 
-      {/* 右列：自主練メニュー＋送信 */}
+      {/* 右列：チーム練習 ＋ 送信 */}
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <div style={sc.card}>
-          <div style={sc.head}>📅 自主練メニュー</div>
-          <div style={sc.body}>
-            {Object.entries(grouped).map(([stat, items]) => (
-              <div key={stat}>
-                <div style={{ background: 'linear-gradient(90deg,#1A3A88,#2A5AAA)', color: '#fff', fontSize: 10, fontWeight: 900, padding: '3px 8px', borderRadius: 3, marginBottom: 4 }}>
-                  {CATEGORY_MAP[stat]}
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginBottom: 8 }}>
-                  {items.map(m => (
-                    <SelfMenuItem key={m.id} m={m} selected={selected.has(m.id)} onToggle={() => toggle(m.id)} />
-                  ))}
-                </div>
+        {isTeamDay && (
+          <div style={sc.card}>
+            <div style={sc.head}>🏀 チーム練習</div>
+            <div style={{ padding: '12px 10px' }}>
+              <div style={{ fontSize: 11, color: '#446688', marginBottom: 6 }}>
+                今日（{DAY_JP[todayDayIdx]}）はチーム練習日
               </div>
-            ))}
+              <div style={{ fontSize: 10, color: '#668899', marginBottom: 10 }}>
+                参加した場合はONにする<br />
+                <span style={{ color: '#2266AA' }}>シュート・パス・DF・メンタル +5</span>
+              </div>
+              <button
+                onClick={() => setTeamParticipated(p => !p)}
+                style={{
+                  width: '100%',
+                  background: teamParticipated
+                    ? 'linear-gradient(135deg,#116633,#22AA55)'
+                    : '#E8F4FA',
+                  color: teamParticipated ? '#fff' : '#446688',
+                  border: `2px solid ${teamParticipated ? '#22AA55' : '#88AACC'}`,
+                  borderRadius: 8, padding: '10px 0', fontSize: 13, fontWeight: 900,
+                  cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
+                }}
+              >
+                {teamParticipated ? '✓ 参加した' : 'チーム練習に参加した'}
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* 送信エリア */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center' }}>
           {error && <div style={{ fontSize: 11, color: '#AA1111', fontWeight: 700 }}>{error}</div>}
-          <div style={{ fontSize: 11, color: '#224466', fontWeight: 700 }}>{selected.size}つ選択中</div>
+          <div style={{ fontSize: 11, color: '#224466', fontWeight: 700 }}>
+            {selected.size}種目チェック{teamParticipated ? '＋チーム練習' : ''}
+          </div>
           <button
-            onClick={() => selected.size > 0 && submit.mutate()}
-            disabled={selected.size === 0 || submit.isPending}
+            onClick={() => canSubmit && submit.mutate()}
+            disabled={!canSubmit || submit.isPending}
             style={{
               width: '100%',
-              background: selected.size > 0 ? 'linear-gradient(135deg,#CC2200,#AA1100)' : '#999',
+              background: canSubmit ? 'linear-gradient(135deg,#CC2200,#AA1100)' : '#999',
               color: '#fff',
-              border: `2px solid ${selected.size > 0 ? '#EE4422' : '#bbb'}`,
+              border: `2px solid ${canSubmit ? '#EE4422' : '#bbb'}`,
               borderRadius: 7, padding: 11, fontSize: 14, fontWeight: 900,
-              fontFamily: 'inherit', cursor: selected.size > 0 ? 'pointer' : 'not-allowed',
+              fontFamily: 'inherit', cursor: canSubmit ? 'pointer' : 'not-allowed',
             }}
           >
             {submit.isPending ? '送信中...' : '親に送る 📨'}

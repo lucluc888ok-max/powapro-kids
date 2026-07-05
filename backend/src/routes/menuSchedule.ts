@@ -19,11 +19,11 @@ router.get('/', async (_req, res) => {
 
 router.put('/', parentAuth, async (req, res) => {
   try {
-    const { monGroup, tueGroup, wedGroup, thuGroup, friGroup, satGroup, sunGroup } = req.body;
+    const { monGroup, tueGroup, wedGroup, thuGroup, friGroup, satGroup, sunGroup, teamDays } = req.body;
     const schedule = await prisma.menuSchedule.upsert({
       where: { id: 1 },
-      create: { id: 1, monGroup, tueGroup, wedGroup, thuGroup, friGroup, satGroup, sunGroup },
-      update: { monGroup, tueGroup, wedGroup, thuGroup, friGroup, satGroup, sunGroup },
+      create: { id: 1, monGroup, tueGroup, wedGroup, thuGroup, friGroup, satGroup, sunGroup, teamDays },
+      update: { monGroup, tueGroup, wedGroup, thuGroup, friGroup, satGroup, sunGroup, teamDays },
     });
     res.json(schedule);
   } catch (e) {

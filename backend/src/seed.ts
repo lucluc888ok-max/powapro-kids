@@ -2,34 +2,6 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-const selfPracticeMenus = [
-  { name: 'その場ドリブル（左右各1分）', targetStat: 'handling' },
-  { name: '8の字ドリブル',              targetStat: 'handling' },
-  { name: 'チェンジオブペース',          targetStat: 'handling' },
-  { name: '股下ドリブル',               targetStat: 'handling' },
-  { name: 'フリースロー20本',            targetStat: 'shooting' },
-  { name: 'レイアップ左右20本',          targetStat: 'shooting' },
-  { name: 'ミドルシュート10本',          targetStat: 'shooting' },
-  { name: 'キャッチ&シュート',           targetStat: 'shooting' },
-  { name: 'ラダートレーニング',          targetStat: 'speed' },
-  { name: 'シャトルラン',               targetStat: 'speed' },
-  { name: 'サイドステップ',             targetStat: 'speed' },
-  { name: 'ダッシュ×10本',             targetStat: 'speed' },
-  { name: 'ディフェンスフットワーク',    targetStat: 'defense' },
-  { name: '1on1守備',                  targetStat: 'defense' },
-  { name: 'ヘルプディフェンス練習',      targetStat: 'defense' },
-  { name: '胸パス壁当て50回',           targetStat: 'passing' },
-  { name: 'バウンズパス練習',           targetStat: 'passing' },
-  { name: '2人組パス練習',              targetStat: 'passing' },
-  { name: '腕立て伏せ20回',             targetStat: 'physical' },
-  { name: 'スクワット30回',             targetStat: 'physical' },
-  { name: '体幹トレーニング',            targetStat: 'physical' },
-  { name: 'ジャンプ練習',               targetStat: 'physical' },
-  { name: '試合参加',                   targetStat: 'mental' },
-  { name: '自主練（自分で考えて実施）',  targetStat: 'mental' },
-  { name: '目標設定・振り返りノート記入',targetStat: 'mental' },
-];
-
 const v = (arr: { label: string; url: string }[]) => JSON.stringify(arr);
 
 const coachMenuA = [
@@ -165,30 +137,39 @@ const coachMenuCommon = [
   },
 ];
 
+const teamMenus = [
+  { name: 'チーム練習(シュート)',       targetStat: 'shooting', deltaValue: 5, menuGroup: 'TEAM' },
+  { name: 'チーム練習(パス)',           targetStat: 'passing',  deltaValue: 5, menuGroup: 'TEAM' },
+  { name: 'チーム練習(ディフェンス)',   targetStat: 'defense',  deltaValue: 5, menuGroup: 'TEAM' },
+  { name: 'チーム練習(メンタル)',       targetStat: 'mental',   deltaValue: 5, menuGroup: 'TEAM' },
+];
+
 async function main() {
-  // 自主練メニュー（既存25件）を再投入
-  await prisma.trainingMenu.deleteMany({ where: { isCoachMenu: false } });
-  await prisma.trainingMenu.createMany({
-    data: selfPracticeMenus.map(m => ({ ...m, isCoachMenu: false })),
+  // 自主練メニュー（既存）を非表示化（履歴保全のため削除しない）
+  await prisma.trainingMenu.updateMany({
+    where: { isCoachMenu: false, menuGroup: null },
+    data: { isActive: false },
   });
 
-  // コーチメニューを再投入
+  // コーチメニュー（A/B/共通/TEAM）を全削除して再投入
   await prisma.trainingMenu.deleteMany({ where: { isCoachMenu: true } });
-  const coachData = [
-    ...coachMenuA.map(m => ({ ...m, isCoachMenu: true })),
-    ...coachMenuB.map(m => ({ ...m, isCoachMenu: true })),
-    ...coachMenuCommon.map(m => ({ ...m, isCoachMenu: true })),
-  ];
-  await prisma.trainingMenu.createMany({ data: coachData });
+  await prisma.trainingMenu.createMany({
+    data: [
+      ...coachMenuA.map(m => ({ ...m, isCoachMenu: true })),
+      ...coachMenuB.map(m => ({ ...m, isCoachMenu: true })),
+      ...coachMenuCommon.map(m => ({ ...m, isCoachMenu: true })),
+      ...teamMenus.map(m => ({ ...m, isCoachMenu: true, isActive: true })),
+    ],
+  });
 
-  // MenuScheduleを初期化（既存があればスキップ）
-  const existing = await prisma.menuSchedule.findUnique({ where: { id: 1 } });
-  if (!existing) {
-    await prisma.menuSchedule.create({ data: { id: 1 } });
-    console.log('MenuSchedule を初期化しました');
-  }
+  // MenuSchedule を upsert（teamDays を含む）
+  await prisma.menuSchedule.upsert({
+    where: { id: 1 },
+    create: { id: 1, teamDays: 'MON,SAT,SUN' },
+    update: { teamDays: 'MON,SAT,SUN' },
+  });
 
-  console.log(`シード完了：自主練${selfPracticeMenus.length}件 / コーチA${coachMenuA.length}件 / コーチB${coachMenuB.length}件 / 共通${coachMenuCommon.length}件`);
+  console.log(`シード完了：コーチA${coachMenuA.length}件 / コーチB${coachMenuB.length}件 / 共通${coachMenuCommon.length}件 / TEAM${teamMenus.length}件`);
 }
 
 main().catch(console.error).finally(() => prisma.$disconnect());

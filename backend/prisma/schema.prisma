@@ -77,4 +77,5 @@ model MenuSchedule {
   friGroup  String @default("A")
   satGroup  String @default("A")
   sunGroup  String @default("B")
+  teamDays  String @default("MON,SAT,SUN")
 }

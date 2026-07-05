@@ -139,17 +139,25 @@ export default function Settings() {
   );
 }
 
-const DAY_KEYS = ['monGroup','tueGroup','wedGroup','thuGroup','friGroup','satGroup','sunGroup'] as const;
-const DAY_JP = ['月','火','水','木','金','土','日'];
-type GroupValue = 'A' | 'B' | 'NONE';
+const DAY_ENTRIES = [
+  { key: 'monGroup' as const, label: '月', code: 'MON' },
+  { key: 'tueGroup' as const, label: '火', code: 'TUE' },
+  { key: 'wedGroup' as const, label: '水', code: 'WED' },
+  { key: 'thuGroup' as const, label: '木', code: 'THU' },
+  { key: 'friGroup' as const, label: '金', code: 'FRI' },
+  { key: 'satGroup' as const, label: '土', code: 'SAT' },
+  { key: 'sunGroup' as const, label: '日', code: 'SUN' },
+];
+type GroupValue = 'A' | 'B';
 
 function MenuScheduleSection() {
   const qc = useQueryClient();
   const { data: schedule } = useQuery({ queryKey: ['menu-schedule'], queryFn: menuScheduleApi.get });
   const [form, setForm] = useState<Record<string, GroupValue>>({
     monGroup: 'A', tueGroup: 'B', wedGroup: 'A',
-    thuGroup: 'B', friGroup: 'A', satGroup: 'NONE', sunGroup: 'NONE',
+    thuGroup: 'B', friGroup: 'A', satGroup: 'A', sunGroup: 'B',
   });
+  const [teamDays, setTeamDays] = useState<string[]>(['MON','SAT','SUN']);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
 
@@ -161,11 +169,12 @@ function MenuScheduleSection() {
         friGroup: schedule.friGroup, satGroup: schedule.satGroup,
         sunGroup: schedule.sunGroup,
       });
+      setTeamDays(schedule.teamDays ? schedule.teamDays.split(',') : ['MON','SAT','SUN']);
     }
   }, [schedule]);
 
   const update = useMutation({
-    mutationFn: () => menuScheduleApi.update(form),
+    mutationFn: () => menuScheduleApi.update({ ...form, teamDays: teamDays.join(',') }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['menu-schedule'] });
       setSaved(true); setError('');
@@ -176,7 +185,12 @@ function MenuScheduleSection() {
     },
   });
 
-  const options: GroupValue[] = ['A', 'B', 'NONE'];
+  const toggleTeamDay = (code: string) => {
+    setTeamDays(prev =>
+      prev.includes(code) ? prev.filter(d => d !== code) : [...prev, code]
+    );
+  };
+
   const sc2 = {
     card: { border: '1.5px solid #99BBDD', borderRadius: 8, overflow: 'hidden' as const, marginBottom: 6 },
     head: { background: 'linear-gradient(90deg,#1A3A88,#2A5AAA)', color: '#fff', fontSize: 11, fontWeight: 900, padding: '4px 10px' },
@@ -188,29 +202,54 @@ function MenuScheduleSection() {
       <div style={sc2.card}>
         <div style={sc2.head}>曜日ごとのメニュー（親JWT必須）</div>
         <div style={{ background: '#E8F4FA', padding: '8px 10px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 4, marginBottom: 6 }}>
-            {DAY_KEYS.map((key, i) => (
+
+          {/* A/B 割当 */}
+          <div style={{ fontSize: 10, fontWeight: 700, color: '#446688', marginBottom: 4 }}>コーチメニュー A/B</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 4, marginBottom: 10 }}>
+            {DAY_ENTRIES.map(({ key, label }) => (
               <div key={key} style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: '#446688', marginBottom: 3 }}>{DAY_JP[i]}</div>
-                {options.map(opt => (
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#446688', marginBottom: 3 }}>{label}</div>
+                {(['A','B'] as GroupValue[]).map(opt => (
                   <div key={opt} onClick={() => setForm(p => ({ ...p, [key]: opt }))}
                     style={{
-                      background: form[key] === opt ? (opt === 'NONE' ? '#888' : opt === 'A' ? '#1A3A88' : '#116633') : '#fff',
+                      background: form[key] === opt ? (opt === 'A' ? '#1A3A88' : '#116633') : '#fff',
                       color: form[key] === opt ? '#fff' : '#446688',
                       border: '1px solid #88AACC', borderRadius: 4,
                       fontSize: 10, fontWeight: 900, padding: '3px 0',
-                      textAlign: 'center', cursor: 'pointer', marginBottom: 2,
+                      textAlign: 'center' as const, cursor: 'pointer', marginBottom: 2,
                     }}
                   >
-                    {opt === 'NONE' ? '休' : `①${opt === 'A' ? '' : ''}${opt}`}
+                    {opt}
                   </div>
                 ))}
               </div>
             ))}
           </div>
-          <div style={{ fontSize: 10, color: '#557799', marginBottom: 6 }}>
-            A=メニュー①　B=メニュー②　休=チーム練習日（コーチメニュー非表示）
+
+          {/* チーム練習日 */}
+          <div style={{ fontSize: 10, fontWeight: 700, color: '#446688', marginBottom: 4 }}>チーム練習日（参加トグルを表示する曜日）</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 4, marginBottom: 10 }}>
+            {DAY_ENTRIES.map(({ label, code }) => {
+              const active = teamDays.includes(code);
+              return (
+                <div key={code} onClick={() => toggleTeamDay(code)}
+                  style={{
+                    textAlign: 'center' as const, cursor: 'pointer',
+                    background: active ? '#1A3A88' : '#fff',
+                    color: active ? '#fff' : '#446688',
+                    border: '1px solid #88AACC', borderRadius: 4,
+                    fontSize: 10, fontWeight: 900, padding: '4px 0',
+                  }}
+                >
+                  {label}
+                </div>
+              );
+            })}
           </div>
+          <div style={{ fontSize: 10, color: '#557799', marginBottom: 8 }}>
+            A=コーチメニュー①　B=コーチメニュー②　チーム練習日=その日にチーム練習参加トグルを表示
+          </div>
+
           {error && <div style={{ fontSize: 11, color: '#AA1111', fontWeight: 700, marginBottom: 4 }}>{error}</div>}
           <button onClick={() => update.mutate()}
             style={{ width: '100%', background: 'linear-gradient(135deg,#1A3A88,#2A5AAA)', color: '#fff', border: 'none', borderRadius: 6, padding: 8, fontSize: 12, fontWeight: 900, fontFamily: 'inherit', cursor: 'pointer' }}>
