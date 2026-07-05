@@ -16,14 +16,18 @@ export default function Settings() {
 
   const [form, setForm] = useState({ name: '', number: 7, position: 'ガード', playStyle: 'ドリブラー', height: 148, weight: 38 });
   const [stats, setStats] = useState({ gamesPlayed: 0, totalPoints: 0, totalAssists: 0 });
+  const [abilities, setAbilities] = useState({ handling: 0, physical: 0, speed: 0, shooting: 0, defense: 0, passing: 0, mental: 0 });
   const [saved, setSaved] = useState(false);
   const [statsSaved, setStatsSaved] = useState(false);
   const [statsError, setStatsError] = useState('');
+  const [abilitySaved, setAbilitySaved] = useState(false);
+  const [abilityError, setAbilityError] = useState('');
 
   useEffect(() => {
     if (player) {
       setForm({ name: player.name, number: player.number, position: player.position, playStyle: player.playStyle, height: player.height, weight: player.weight });
       setStats({ gamesPlayed: player.gamesPlayed, totalPoints: player.totalPoints, totalAssists: player.totalAssists });
+      setAbilities({ handling: player.handling, physical: player.physical, speed: player.speed, shooting: player.shooting, defense: player.defense, passing: player.passing, mental: player.mental });
     }
   }, [player]);
 
@@ -35,6 +39,18 @@ export default function Settings() {
       setTimeout(() => setSaved(false), 2000);
     },
     onError: () => setSaved(false),
+  });
+
+  const updateAbilities = useMutation({
+    mutationFn: () => playerApi.updateStats(abilities),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['player'] });
+      setAbilitySaved(true); setAbilityError('');
+      setTimeout(() => setAbilitySaved(false), 2000);
+    },
+    onError: (e: any) => {
+      setAbilityError(e.response?.status === 401 ? '承認ページで親ログインが必要です' : 'エラーが発生しました');
+    },
   });
 
   const updateStats = useMutation({
@@ -99,6 +115,34 @@ export default function Settings() {
         </div>
         <button onClick={() => updateProfile.mutate()} style={{ width: '100%', background: 'linear-gradient(135deg,#1A3A88,#2A5AAA)', color: '#fff', border: 'none', borderRadius: 8, padding: '10px', fontSize: 13, fontWeight: 900, fontFamily: 'inherit', cursor: 'pointer', marginBottom: 6 }}>
           {saved ? '保存しました ✓' : 'プロフィールを保存'}
+        </button>
+
+        <div style={{ fontSize: 10, fontWeight: 900, color: 'rgba(255,255,255,0.8)', letterSpacing: '0.08em', margin: '3px 0 2px' }}>⚡ 能力値（親のみ）</div>
+        <div style={sc.card}>
+          <div style={sc.head}>ステータス直接編集</div>
+          {([
+            ['handling', 'ハンドリング'],
+            ['physical', 'フィジカル'],
+            ['speed', 'スピード'],
+            ['shooting', 'シュート'],
+            ['defense', 'ディフェンス'],
+            ['passing', 'パス'],
+            ['mental', 'メンタル'],
+          ] as [keyof typeof abilities, string][]).map(([key, label], i, arr) => (
+            <div key={key} style={{ ...sc.row, borderBottom: i < arr.length - 1 ? undefined : 'none' }}>
+              <span style={sc.label}>{label}</span>
+              <input
+                style={{ ...sc.input, width: 70 }}
+                type="number" min={0} max={999}
+                value={abilities[key]}
+                onChange={e => setAbilities(p => ({ ...p, [key]: Math.min(999, Math.max(0, +e.target.value)) }))}
+              />
+            </div>
+          ))}
+        </div>
+        {abilityError && <div style={{ fontSize: 11, color: '#AA1111', fontWeight: 700, marginBottom: 4, textAlign: 'center' }}>{abilityError}</div>}
+        <button onClick={() => updateAbilities.mutate()} style={{ width: '100%', background: 'linear-gradient(135deg,#886600,#AA8800)', color: '#fff', border: 'none', borderRadius: 8, padding: '10px', fontSize: 13, fontWeight: 900, fontFamily: 'inherit', cursor: 'pointer', marginBottom: 6 }}>
+          {abilitySaved ? '保存しました ✓' : '能力値を保存（親認証必須）'}
         </button>
       </div>
 
