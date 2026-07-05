@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { playerApi } from '../lib/api';
+import { playerApi, menuScheduleApi } from '../lib/api';
 
 const sc = {
   card: { border: '1.5px solid #99BBDD', borderRadius: 8, overflow: 'hidden' as const, marginBottom: 6 },
@@ -17,6 +17,8 @@ export default function Settings() {
   const [form, setForm] = useState({ name: '', number: 7, position: 'ガード', playStyle: 'ドリブラー', height: 148, weight: 38 });
   const [stats, setStats] = useState({ gamesPlayed: 0, totalPoints: 0, totalAssists: 0 });
   const [saved, setSaved] = useState(false);
+  const [statsSaved, setStatsSaved] = useState(false);
+  const [statsError, setStatsError] = useState('');
 
   useEffect(() => {
     if (player) {
@@ -27,12 +29,28 @@ export default function Settings() {
 
   const updateProfile = useMutation({
     mutationFn: () => playerApi.update(form),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['player'] }); setSaved(true); setTimeout(() => setSaved(false), 2000); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['player'] });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    },
+    onError: () => setSaved(false),
   });
 
   const updateStats = useMutation({
     mutationFn: () => playerApi.updateStats(stats),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['player'] }); setSaved(true); setTimeout(() => setSaved(false), 2000); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['player'] });
+      setStatsSaved(true);
+      setStatsError('');
+      setTimeout(() => setStatsSaved(false), 2000);
+    },
+    onError: (e: any) => {
+      const msg = e.response?.data?.error || '';
+      setStatsError(msg.includes('認証') || e.response?.status === 401
+        ? '承認ページで親ログインが必要です'
+        : 'エラーが発生しました');
+    },
   });
 
   const positions = ['ガード', 'フォワード', 'センター'];
@@ -101,8 +119,9 @@ export default function Settings() {
             <input style={{ ...sc.input, width: 70 }} type="number" value={stats.totalAssists} onChange={e => setStats(p => ({ ...p, totalAssists: +e.target.value }))} />
           </div>
         </div>
+        {statsError && <div style={{ fontSize: 11, color: '#AA1111', fontWeight: 700, marginBottom: 4, textAlign: 'center' }}>{statsError}</div>}
         <button onClick={() => updateStats.mutate()} style={{ width: '100%', background: 'linear-gradient(135deg,#1A3A88,#2A5AAA)', color: '#fff', border: 'none', borderRadius: 8, padding: '10px', fontSize: 13, fontWeight: 900, fontFamily: 'inherit', cursor: 'pointer', marginBottom: 6 }}>
-          成績を保存
+          {statsSaved ? '保存しました ✓' : '成績を保存'}
         </button>
 
         <div style={{ fontSize: 10, fontWeight: 900, color: 'rgba(255,255,255,0.8)', letterSpacing: '0.08em', margin: '3px 0 2px' }}>🔐 セキュリティ</div>
@@ -113,7 +132,92 @@ export default function Settings() {
             <span style={{ fontSize: 12, color: '#888' }}>Railway環境変数で設定</span>
           </div>
         </div>
+
+        <MenuScheduleSection />
       </div>
     </div>
+  );
+}
+
+const DAY_KEYS = ['monGroup','tueGroup','wedGroup','thuGroup','friGroup','satGroup','sunGroup'] as const;
+const DAY_JP = ['月','火','水','木','金','土','日'];
+type GroupValue = 'A' | 'B' | 'NONE';
+
+function MenuScheduleSection() {
+  const qc = useQueryClient();
+  const { data: schedule } = useQuery({ queryKey: ['menu-schedule'], queryFn: menuScheduleApi.get });
+  const [form, setForm] = useState<Record<string, GroupValue>>({
+    monGroup: 'A', tueGroup: 'B', wedGroup: 'A',
+    thuGroup: 'B', friGroup: 'A', satGroup: 'NONE', sunGroup: 'NONE',
+  });
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (schedule) {
+      setForm({
+        monGroup: schedule.monGroup, tueGroup: schedule.tueGroup,
+        wedGroup: schedule.wedGroup, thuGroup: schedule.thuGroup,
+        friGroup: schedule.friGroup, satGroup: schedule.satGroup,
+        sunGroup: schedule.sunGroup,
+      });
+    }
+  }, [schedule]);
+
+  const update = useMutation({
+    mutationFn: () => menuScheduleApi.update(form),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['menu-schedule'] });
+      setSaved(true); setError('');
+      setTimeout(() => setSaved(false), 2000);
+    },
+    onError: (e: any) => {
+      setError(e.response?.data?.error || '承認ページで親ログインが必要です');
+    },
+  });
+
+  const options: GroupValue[] = ['A', 'B', 'NONE'];
+  const sc2 = {
+    card: { border: '1.5px solid #99BBDD', borderRadius: 8, overflow: 'hidden' as const, marginBottom: 6 },
+    head: { background: 'linear-gradient(90deg,#1A3A88,#2A5AAA)', color: '#fff', fontSize: 11, fontWeight: 900, padding: '4px 10px' },
+  };
+
+  return (
+    <>
+      <div style={{ fontSize: 10, fontWeight: 900, color: 'rgba(255,255,255,0.8)', letterSpacing: '0.08em', margin: '10px 0 2px' }}>📅 週間メニュー設定</div>
+      <div style={sc2.card}>
+        <div style={sc2.head}>曜日ごとのメニュー（親JWT必須）</div>
+        <div style={{ background: '#E8F4FA', padding: '8px 10px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 4, marginBottom: 6 }}>
+            {DAY_KEYS.map((key, i) => (
+              <div key={key} style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#446688', marginBottom: 3 }}>{DAY_JP[i]}</div>
+                {options.map(opt => (
+                  <div key={opt} onClick={() => setForm(p => ({ ...p, [key]: opt }))}
+                    style={{
+                      background: form[key] === opt ? (opt === 'NONE' ? '#888' : opt === 'A' ? '#1A3A88' : '#116633') : '#fff',
+                      color: form[key] === opt ? '#fff' : '#446688',
+                      border: '1px solid #88AACC', borderRadius: 4,
+                      fontSize: 10, fontWeight: 900, padding: '3px 0',
+                      textAlign: 'center', cursor: 'pointer', marginBottom: 2,
+                    }}
+                  >
+                    {opt === 'NONE' ? '休' : `①${opt === 'A' ? '' : ''}${opt}`}
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+          <div style={{ fontSize: 10, color: '#557799', marginBottom: 6 }}>
+            A=メニュー①　B=メニュー②　休=チーム練習日（コーチメニュー非表示）
+          </div>
+          {error && <div style={{ fontSize: 11, color: '#AA1111', fontWeight: 700, marginBottom: 4 }}>{error}</div>}
+          <button onClick={() => update.mutate()}
+            style={{ width: '100%', background: 'linear-gradient(135deg,#1A3A88,#2A5AAA)', color: '#fff', border: 'none', borderRadius: 6, padding: 8, fontSize: 12, fontWeight: 900, fontFamily: 'inherit', cursor: 'pointer' }}>
+            {saved ? '保存しました ✓' : '週間設定を保存'}
+          </button>
+        </div>
+      </div>
+    </>
   );
 }

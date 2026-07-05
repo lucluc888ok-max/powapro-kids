@@ -5,6 +5,7 @@ import trainingRouter from './routes/training';
 import approvalRouter from './routes/approval';
 import skillsRouter from './routes/skills';
 import historyRouter from './routes/history';
+import menuScheduleRouter from './routes/menuSchedule';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -17,6 +18,7 @@ app.use('/api/training', trainingRouter);
 app.use('/api/approval', approvalRouter);
 app.use('/api/skills', skillsRouter);
 app.use('/api/history', historyRouter);
+app.use('/api/menu-schedule', menuScheduleRouter);
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 

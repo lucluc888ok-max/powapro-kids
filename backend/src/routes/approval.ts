@@ -34,7 +34,7 @@ router.post('/approve/:id', parentAuth, async (req, res) => {
     if (!log) { res.status(404).json({ error: '記録が見つかりません' }); return; }
     if (log.approved || log.rejected) { res.status(409).json({ error: '既に処理済みです' }); return; }
 
-    const delta = log.statsDelta as Record<string, number>;
+    const delta = JSON.parse(log.statsDelta) as Record<string, number>;
     const player = await prisma.player.findUnique({ where: { id: log.playerId } });
     if (!player) { res.status(404).json({ error: 'プレイヤーが見つかりません' }); return; }
 

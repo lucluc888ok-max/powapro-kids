@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -37,11 +37,11 @@ model TrainingLog {
   playerId   Int
   player     Player    @relation(fields: [playerId], references: [id])
   date       DateTime
-  menus      Json
+  menus      String
   approved   Boolean   @default(false)
   approvedAt DateTime?
   rejected   Boolean   @default(false)
-  statsDelta Json      @default("{}")
+  statsDelta String    @default("{}")
   createdAt  DateTime  @default(now())
 }
 
@@ -55,11 +55,26 @@ model Skill {
 }
 
 model TrainingMenu {
-  id          Int     @id @default(autoincrement())
-  name        String
-  description String?
-  targetStat  String
-  deltaValue  Int     @default(1)
-  isActive    Boolean @default(true)
-  createdAt   DateTime @default(now())
+  id           Int     @id @default(autoincrement())
+  name         String
+  description  String?
+  targetStat   String
+  deltaValue   Int     @default(1)
+  isActive     Boolean @default(true)
+  isCoachMenu  Boolean @default(false)
+  menuGroup    String?
+  detail       String?
+  videos       String?
+  createdAt    DateTime @default(now())
+}
+
+model MenuSchedule {
+  id        Int    @id @default(1)
+  monGroup  String @default("A")
+  tueGroup  String @default("B")
+  wedGroup  String @default("A")
+  thuGroup  String @default("B")
+  friGroup  String @default("A")
+  satGroup  String @default("NONE")
+  sunGroup  String @default("NONE")
 }

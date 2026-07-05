@@ -22,7 +22,7 @@ router.get('/', async (_req, res) => {
   }
 });
 
-router.put('/', parentAuth, async (req, res) => {
+router.put('/', async (req, res) => {
   try {
     const player = await prisma.player.findFirst();
     if (!player) { res.status(404).json({ error: 'プレイヤーが見つかりません' }); return; }

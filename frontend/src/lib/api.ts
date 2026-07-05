@@ -47,3 +47,8 @@ export const historyApi = {
   getAll: () => api.get('/history').then(r => r.data),
   getByDate: (date: string) => api.get(`/history/${date}`).then(r => r.data),
 };
+
+export const menuScheduleApi = {
+  get: () => api.get('/menu-schedule').then(r => r.data),
+  update: (data: object) => api.put('/menu-schedule', data).then(r => r.data),
+};

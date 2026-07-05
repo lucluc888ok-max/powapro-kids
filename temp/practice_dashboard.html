@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>今日のバスケ練習</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#152A4A;
+    --navy-light:#274373;
+    --court:#EDF1F6;
+    --wood:#F3E4CB;
+    --wood-line:#C98B3B;
+    --orange:#F2662B;
+    --orange-dark:#C94D1B;
+    --green:#3C9A5C;
+    --green-bg:#E4F3E8;
+    --gold:#F0AC1E;
+    --ink:#152A4A;
+    --sub:#5B6B85;
+    --card:#FFFFFF;
+    --line:#DCE3ED;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Noto Sans JP', sans-serif;
+    background:var(--court);
+    color:var(--ink);
+    padding-bottom:40px;
+  }
+  h1,h2,h3,.display{
+    font-family:'Fredoka','Noto Sans JP',sans-serif;
+    font-weight:600;
+    margin:0;
+  }
+  .wrap{max-width:520px;margin:0 auto;padding:0 16px;}
+
+  /* header */
+  .header{
+    background:var(--navy);
+    padding:22px 16px 60px;
+    position:relative;
+    overflow:hidden;
+  }
+  .header::after{
+    content:"";
+    position:absolute;
+    right:-40px; top:-40px;
+    width:160px; height:160px;
+    border-radius:50%;
+    border:14px solid var(--navy-light);
+    opacity:0.5;
+  }
+  .header .eyebrow{
+    color:var(--gold);
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:.08em;
+    margin-bottom:6px;
+  }
+  .header h1{
+    color:#fff;
+    font-size:26px;
+    position:relative;
+    z-index:1;
+  }
+  .header .sub{
+    color:#B9C6E0;
+    font-size:13px;
+    margin-top:6px;
+    position:relative;
+    z-index:1;
+  }
+
+  /* floating card that overlaps header bottom */
+  .meter-card{
+    background:var(--card);
+    border-radius:20px;
+    margin:-46px 16px 0;
+    padding:18px 20px;
+    box-shadow:0 6px 20px rgba(21,42,74,0.12);
+    position:relative;
+    z-index:2;
+  }
+  .meter-row{display:flex;align-items:center;gap:16px;}
+  .meter-ring{flex-shrink:0;}
+  .meter-text{flex:1;}
+  .meter-text .num{font-family:'Fredoka';font-size:28px;color:var(--navy);}
+  .meter-text .num span{color:var(--orange);}
+  .meter-text .label{font-size:12px;color:var(--sub);margin-top:2px;}
+
+  .content{padding:20px 16px 0;}
+
+  .coach-card{
+    background:var(--wood);
+    border:2px solid var(--wood-line);
+    border-radius:16px;
+    padding:14px 16px;
+    margin-bottom:18px;
+  }
+  .coach-card .tag{
+    display:inline-block;
+    background:var(--wood-line);
+    color:#fff;
+    font-size:11px;
+    font-weight:700;
+    padding:3px 10px;
+    border-radius:20px;
+    margin-bottom:8px;
+  }
+  .coach-card p{font-size:14px;line-height:1.7;margin:0 0 6px;color:#4A3218;}
+  .coach-card .next{font-size:12.5px;color:#7A5A2A;margin:0;}
+
+  .toggle-row{display:flex;gap:8px;margin-bottom:18px;}
+  .toggle-btn{
+    flex:1;
+    padding:12px;
+    border-radius:14px;
+    border:2px solid var(--line);
+    background:#fff;
+    font-family:'Fredoka';
+    font-size:15px;
+    color:var(--sub);
+    cursor:pointer;
+    transition:all .15s;
+  }
+  .toggle-btn.active{
+    border-color:var(--orange);
+    background:var(--orange);
+    color:#fff;
+  }
+  .toggle-btn .today-mark{
+    display:block;
+    font-size:10px;
+    font-family:'Noto Sans JP';
+    font-weight:500;
+    margin-top:2px;
+  }
+
+  .section-title{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-size:15px;
+    color:var(--navy);
+    margin:0 0 10px;
+  }
+  .section-title .dot{
+    width:8px;height:8px;border-radius:50%;background:var(--orange);
+  }
+
+  .drill-list{display:flex;flex-direction:column;gap:10px;margin-bottom:22px;}
+  .drill{
+    background:var(--card);
+    border:2px solid var(--line);
+    border-radius:16px;
+    padding:12px 14px;
+    display:flex;
+    gap:12px;
+    align-items:flex-start;
+    transition:border-color .15s, background .15s;
+  }
+  .drill.done{
+    border-color:var(--green);
+    background:var(--green-bg);
+  }
+  .check-btn{
+    flex-shrink:0;
+    width:38px;height:38px;
+    border-radius:50%;
+    border:2px solid var(--line);
+    background:#fff;
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;
+    font-size:18px;
+    color:transparent;
+    transition:all .15s;
+  }
+  .drill.done .check-btn{
+    background:var(--green);
+    border-color:var(--green);
+    color:#fff;
+  }
+  .drill-body{flex:1;min-width:0;}
+  .drill-name{
+    font-size:14.5px;
+    font-weight:500;
+    margin:0 0 2px;
+    color:var(--ink);
+  }
+  .drill.done .drill-name{color:var(--sub);text-decoration:line-through;}
+  .drill-detail{font-size:12px;color:var(--sub);margin:0 0 8px;}
+  .video-links{display:flex;gap:6px;flex-wrap:wrap;}
+  .video-links a{
+    display:inline-flex;
+    align-items:center;
+    gap:4px;
+    font-size:11.5px;
+    color:var(--orange-dark);
+    text-decoration:none;
+    border:1.5px solid #F0C4AE;
+    background:#FFF3EC;
+    padding:4px 9px;
+    border-radius:20px;
+    font-weight:500;
+  }
+  .video-links a::before{content:"▶";font-size:9px;}
+
+  .week-card{
+    background:var(--card);
+    border-radius:16px;
+    border:2px solid var(--line);
+    padding:16px 18px;
+    margin-bottom:16px;
+  }
+  .week-card .title{font-size:13px;color:var(--sub);margin:0 0 12px;font-weight:500;}
+  .week-row{display:flex;justify-content:space-between;}
+  .week-day{display:flex;flex-direction:column;align-items:center;gap:6px;}
+  .week-day .circle{
+    width:30px;height:30px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    border:2px solid var(--line);
+    background:#fff;
+    font-size:13px;
+  }
+  .week-day .circle.on{
+    background:var(--gold);
+    border-color:var(--gold);
+    color:#fff;
+  }
+  .week-day .circle.today{border-color:var(--orange);}
+  .week-day span.d{font-size:11px;color:var(--sub);}
+
+  .parent-note{
+    text-align:center;
+    font-size:11.5px;
+    color:var(--sub);
+    margin-top:10px;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="wrap">
+    <div class="eyebrow">WEEKLY PRACTICE</div>
+    <h1>今日のトレーニング</h1>
+    <div class="sub" id="today-date">-</div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="meter-card">
+    <div class="meter-row">
+      <svg class="meter-ring" width="56" height="56" viewBox="0 0 56 56">
+        <circle cx="28" cy="28" r="24" fill="none" stroke="#EDEFF3" stroke-width="7"/>
+        <circle id="ring-progress" cx="28" cy="28" r="24" fill="none" stroke="#F2662B" stroke-width="7" stroke-linecap="round" stroke-dasharray="151" stroke-dashoffset="151" transform="rotate(-90 28 28)"/>
+      </svg>
+      <div class="meter-text">
+        <div class="num"><span id="done-count">0</span>/<span id="total-count">14</span></div>
+        <div class="label">今日クリアしたメニュー</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="coach-card">
+      <span class="tag">コーチから今週のFB</span>
+      <p>いつでもスピードが出せる姿勢を作ろう。ドリブルのコントロール力をさらに上げよう。</p>
+      <p class="next">来週の目標: さらにスピードアップ！</p>
+    </div>
+
+    <div class="toggle-row">
+      <button class="toggle-btn" id="btn-1" onclick="selectMenu(1)">
+        メニュー①
+        <span class="today-mark" id="mark-1"></span>
+      </button>
+      <button class="toggle-btn" id="btn-2" onclick="selectMenu(2)">
+        メニュー②
+        <span class="today-mark" id="mark-2"></span>
+      </button>
+    </div>
+
+    <div class="section-title"><span class="dot"></span>ハンドリング & ドリブル</div>
+    <div class="drill-list" id="menu-list"></div>
+
+    <div class="section-title"><span class="dot" style="background:var(--gold);"></span>アジリティ & ジャンプ（共通）</div>
+    <div class="drill-list" id="common-list"></div>
+
+    <div class="week-card">
+      <p class="title">今週の記録</p>
+      <div class="week-row" id="week-row"></div>
+      <p class="parent-note">全部クリアした日にスターがつくよ</p>
+    </div>
+  </div>
+</div>
+
+<script>
+var menu1 = [
+  {id:"m1-1", name:"ノルディックスクワット", detail:"15回 x 2セット", videos:[{label:"解説", url:"https://utage-system.com/video/zHL0Ab1bkjXc"},{label:"実演", url:"https://utage-system.com/video/VEUGt9DQqciI"}]},
+  {id:"m1-2", name:"トリプルスレッド", detail:"20秒 x 2セット", videos:[{label:"動画", url:"https://utage-system.com/video/Dm00Nj02B1Tk"}]},
+  {id:"m1-3", name:"フロントハンドリング", detail:"20秒 x 2セット", videos:[{label:"解説", url:"https://utage-system.com/video/YtFMe3acslcx"},{label:"実践", url:"https://utage-system.com/video/fJlWPBBwom8k"}]},
+  {id:"m1-4", name:"縦引き（左右）", detail:"20回 x 2セット", videos:[{label:"動画", url:"https://utage-system.com/video/5qgPTZa1lXdp"}]},
+  {id:"m1-5", name:"ポケットハンドリング（左右）", detail:"20秒 x 2セット", videos:[{label:"動画", url:"https://utage-system.com/video/zq5mWeJkxiD3"}]},
+  {id:"m1-6", name:"3ドリポケット（左右）", detail:"20回 x 2セット", videos:[{label:"動画", url:"https://utage-system.com/video/eejiWeReBmUC"}]},
+  {id:"m1-7", name:"セミサークルポケット（右）", detail:"20秒 x 2セット", videos:[{label:"動画", url:"https://utage-system.com/video/sgTSzCgB6YcN"}]},
+  {id:"m1-8", name:"セミサークルポケット（左）", detail:"20秒 x 2セット", videos:[{label:"動画", url:"https://utage-system.com/video/kaqvMSDHBWrp"}]},
+  {id:"m1-9", name:"ドリブルダッシュ", detail:"20秒 x 2セット", videos:[{label:"動画", url:"https://utage-system.com/video/8fEFdaswdgwv"}]}
+];
+var menu2 = [
+  {id:"m2-1", name:"サイドキック", detail:"", videos:[{label:"解説", url:"https://utage-system.com/video/f29FSn3y8Rjv"},{label:"実践", url:"https://utage-system.com/video/Bf67KGvTU3Zj"}]},
+  {id:"m2-2", name:"4コーンクロス", detail:"", videos:[{label:"動画", url:"https://utage-system.com/video/1DxcQoZjg8Ik"}]},
+  {id:"m2-3", name:"トリプルスレッド（クロス）", detail:"", videos:[{label:"実践", url:"https://utage-system.com/video/hxtmdo8eSg7i"}]},
+  {id:"m2-4", name:"2ドリからフロントチェンジ", detail:"各20秒", videos:[{label:"動画", url:"https://utage-system.com/video/pKbrSn5XAM8u"}]},
+  {id:"m2-5", name:"片側スキップ", detail:"", videos:[{label:"動画", url:"https://utage-system.com/video/PulrDL7XdBfu"}]},
+  {id:"m2-6", name:"スキップダッシュドリブル", detail:"", videos:[{label:"動画", url:"https://utage-system.com/video/jdU2qvWd7H2f"}]},
+  {id:"m2-7", name:"片側スキップポケットドリブル（右）", detail:"各20秒 x 2セット", videos:[{label:"動画", url:"https://utage-system.com/video/PLCR0QI2hdHH"}]},
+  {id:"m2-8", name:"片側スキップポケットドリブル（左）", detail:"各20秒 x 2セット", videos:[{label:"動画", url:"https://utage-system.com/video/7nZCIFSyGQKr"}]},
+  {id:"m2-9", name:"6コーンスキップドライブ", detail:"各20秒 x 2セット", videos:[{label:"動画", url:"https://utage-system.com/video/LEkFBO3ba5Ez"}]}
+];
+var common = [
+  {id:"c-1", name:"両足レジストジャンプ", detail:"20秒→15秒休憩→20秒 x 2セット", videos:[{label:"動画", url:"https://utage-system.com/video/rYglMUlfDjPY"}]},
+  {id:"c-2", name:"片足レジストもも上げ（左右）", detail:"20秒→15秒休憩→20秒 x 2セット", videos:[{label:"動画", url:"https://utage-system.com/video/2c4xTdBseirf"}]},
+  {id:"c-3", name:"ウォール12ダッシュ", detail:"20秒→15秒休憩→20秒 x 2セット", videos:[{label:"動画", url:"https://utage-system.com/video/Zl8iuwsQKFXA"}]},
+  {id:"c-4", name:"もも上げダッシュ", detail:"20秒→15秒休憩→20秒 x 2セット", videos:[{label:"動画", url:"https://utage-system.com/video/X3fhC0cYB0Jh"}]},
+  {id:"c-5", name:"ハンズアップもも上げ", detail:"20秒→15秒休憩→20秒 x 2セット", videos:[{label:"動画", url:"https://utage-system.com/video/n6XWqt27FeNF"}]}
+];
+
+var STORAGE_KEY = "bball_practice_log_v1";
+var todayStr = new Date().toISOString().slice(0,10);
+var weekdayIdx = new Date().getDay(); /* 0=Sun...6=Sat */
+/* 月水金=メニュー1, 火木土日=メニュー2 という前提。必要に応じて曜日の割り当てを変えてください */
+var autoMenu = [2,1,2,1,2,1,2][weekdayIdx]; /* Sun,Mon,Tue,Wed,Thu,Fri,Sat */
+
+function loadData(){
+  try{
+    var raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  }catch(e){ return {}; }
+}
+function saveData(data){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }catch(e){}
+}
+
+var data = loadData();
+if(!data[todayStr]) data[todayStr] = { menu: autoMenu, checked: {} };
+var today = data[todayStr];
+var currentMenu = today.menu;
+
+function weekdayLabel(idx){
+  return ["日","月","火","水","木","金","土"][idx];
+}
+
+function renderDrill(item){
+  var isDone = !!today.checked[item.id];
+  var videosHtml = item.videos.map(function(v){
+    return '<a href="'+v.url+'" target="_blank" rel="noopener">'+v.label+'</a>';
+  }).join('');
+  return '' +
+  '<div class="drill'+(isDone?' done':'')+'" data-id="'+item.id+'">' +
+    '<button class="check-btn" onclick="toggleItem(\''+item.id+'\')" aria-label="完了にする">&#10003;</button>' +
+    '<div class="drill-body">' +
+      '<p class="drill-name">'+item.name+'</p>' +
+      (item.detail ? '<p class="drill-detail">'+item.detail+'</p>' : '<div style="margin-bottom:8px;"></div>') +
+      '<div class="video-links">'+videosHtml+'</div>' +
+    '</div>' +
+  '</div>';
+}
+
+function currentList(){
+  return currentMenu === 1 ? menu1 : menu2;
+}
+
+function renderAll(){
+  document.getElementById('menu-list').innerHTML = currentList().map(renderDrill).join('');
+  document.getElementById('common-list').innerHTML = common.map(renderDrill).join('');
+
+  document.getElementById('btn-1').classList.toggle('active', currentMenu===1);
+  document.getElementById('btn-2').classList.toggle('active', currentMenu===2);
+  document.getElementById('mark-1').textContent = autoMenu===1 ? '今日のおすすめ' : '';
+  document.getElementById('mark-2').textContent = autoMenu===2 ? '今日のおすすめ' : '';
+
+  var all = currentList().concat(common);
+  var total = all.length;
+  var done = all.filter(function(i){ return today.checked[i.id]; }).length;
+  document.getElementById('done-count').textContent = done;
+  document.getElementById('total-count').textContent = total;
+
+  var circumference = 151;
+  var offset = circumference - (circumference * done / total);
+  document.getElementById('ring-progress').setAttribute('stroke-dashoffset', offset);
+
+  renderWeek();
+}
+
+function toggleItem(id){
+  today.checked[id] = !today.checked[id];
+  saveData(data);
+  renderAll();
+}
+
+function selectMenu(n){
+  currentMenu = n;
+  today.menu = n;
+  saveData(data);
+  renderAll();
+}
+
+function renderWeek(){
+  var row = document.getElementById('week-row');
+  var html = '';
+  var base = new Date();
+  var mondayOffset = (base.getDay() + 6) % 7;
+  for(var i=0;i<7;i++){
+    var d = new Date(base);
+    d.setDate(base.getDate() - mondayOffset + i);
+    var key = d.toISOString().slice(0,10);
+    var entry = data[key];
+    var full = false;
+    if(entry){
+      var list = entry.menu === 1 ? menu1 : menu2;
+      var all = list.concat(common);
+      full = all.every(function(item){ return entry.checked[item.id]; });
+    }
+    var isToday = key === todayStr;
+    html += '<div class="week-day">' +
+      '<div class="circle'+(full?' on':'')+(isToday?' today':'')+'">'+(full?'&#9733;':'')+'</div>' +
+      '<span class="d">'+["月","火","水","木","金","土","日"][i]+'</span>' +
+    '</div>';
+  }
+  row.innerHTML = html;
+}
+
+document.getElementById('today-date').textContent =
+  new Date().toLocaleDateString('ja-JP',{month:'long', day:'numeric'}) + '（' + weekdayLabel(weekdayIdx) + '）';
+
+renderAll();
+</script>
+</body>
+</html>

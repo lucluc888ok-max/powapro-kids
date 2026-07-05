@@ -4,6 +4,12 @@ import { PrismaClient } from '@prisma/client';
 const router = Router();
 const prisma = new PrismaClient();
 
+const parse = (l: any) => ({
+  ...l,
+  menus: JSON.parse(l.menus),
+  statsDelta: JSON.parse(l.statsDelta),
+});
+
 router.get('/', async (_req, res) => {
   try {
     const player = await prisma.player.findFirst();
@@ -12,7 +18,7 @@ router.get('/', async (_req, res) => {
       where: { playerId: player.id },
       orderBy: { date: 'desc' },
     });
-    res.json(logs);
+    res.json(logs.map(parse));
   } catch (e) {
     res.status(500).json({ error: String(e) });
   }
@@ -28,7 +34,7 @@ router.get('/:date', async (req, res) => {
     const log = await prisma.trainingLog.findFirst({
       where: { playerId: player.id, date: { gte: date, lt: next } },
     });
-    res.json(log);
+    res.json(log ? parse(log) : null);
   } catch (e) {
     res.status(500).json({ error: String(e) });
   }

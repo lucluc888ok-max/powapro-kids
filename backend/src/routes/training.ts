@@ -21,7 +21,6 @@ router.post('/log', async (req, res) => {
     const { menuIds } = req.body as { menuIds: number[] };
     if (!menuIds?.length) { res.status(400).json({ error: '練習メニューを選択してください' }); return; }
 
-    // 当日の記録が既にあるか確認
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
@@ -42,11 +41,11 @@ router.post('/log', async (req, res) => {
       data: {
         playerId: player.id,
         date: new Date(),
-        menus: menus.map(m => ({ id: m.id, name: m.name, targetStat: m.targetStat })),
-        statsDelta,
+        menus: JSON.stringify(menus.map(m => ({ id: m.id, name: m.name, targetStat: m.targetStat }))),
+        statsDelta: JSON.stringify(statsDelta),
       },
     });
-    res.json(log);
+    res.json({ ...log, menus: JSON.parse(log.menus), statsDelta: JSON.parse(log.statsDelta) });
   } catch (e) {
     res.status(500).json({ error: String(e) });
   }
@@ -60,7 +59,7 @@ router.get('/pending', async (_req, res) => {
       where: { playerId: player.id, approved: false, rejected: false },
       orderBy: { date: 'desc' },
     });
-    res.json(logs);
+    res.json(logs.map(l => ({ ...l, menus: JSON.parse(l.menus), statsDelta: JSON.parse(l.statsDelta) })));
   } catch (e) {
     res.status(500).json({ error: String(e) });
   }
