@@ -75,6 +75,6 @@ model MenuSchedule {
   wedGroup  String @default("A")
   thuGroup  String @default("B")
   friGroup  String @default("A")
-  satGroup  String @default("NONE")
-  sunGroup  String @default("NONE")
+  satGroup  String @default("A")
+  sunGroup  String @default("B")
 }

@@ -182,7 +182,7 @@ export default function Training() {
           <div style={sc.head}>
             🏋️ 今週のコーチメニュー
             <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 700, opacity: 0.8 }}>
-              {isNone ? '（土日はチーム練習）' : `（${DAY_JP[todayDayIdx]}曜：メニュー${todayGroup}）`}
+              {isNone ? '（本日はコーチメニューなし）' : `（${DAY_JP[todayDayIdx]}曜：メニュー${todayGroup}）`}
             </span>
           </div>
           <div style={sc.body}>
