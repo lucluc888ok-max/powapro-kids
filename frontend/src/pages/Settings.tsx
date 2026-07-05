@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { playerApi, menuScheduleApi } from '../lib/api';
 
@@ -22,9 +22,11 @@ export default function Settings() {
   const [statsError, setStatsError] = useState('');
   const [abilitySaved, setAbilitySaved] = useState(false);
   const [abilityError, setAbilityError] = useState('');
+  const initialized = useRef(false);
 
   useEffect(() => {
-    if (player) {
+    if (player && !initialized.current) {
+      initialized.current = true;
       setForm({ name: player.name, number: player.number, position: player.position, playStyle: player.playStyle, height: player.height, weight: player.weight });
       setStats({ gamesPlayed: player.gamesPlayed, totalPoints: player.totalPoints, totalAssists: player.totalAssists });
       setAbilities({ handling: player.handling, physical: player.physical, speed: player.speed, shooting: player.shooting, defense: player.defense, passing: player.passing, mental: player.mental });
