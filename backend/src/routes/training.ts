@@ -41,11 +41,11 @@ router.post('/log', async (req, res) => {
       data: {
         playerId: player.id,
         date: new Date(),
-        menus: JSON.stringify(menus.map(m => ({ id: m.id, name: m.name, targetStat: m.targetStat }))),
-        statsDelta: JSON.stringify(statsDelta),
+        menus: menus.map(m => ({ id: m.id, name: m.name, targetStat: m.targetStat })),
+        statsDelta,
       },
     });
-    res.json({ ...log, menus: JSON.parse(log.menus), statsDelta: JSON.parse(log.statsDelta) });
+    res.json(log);
   } catch (e) {
     res.status(500).json({ error: String(e) });
   }
@@ -59,7 +59,7 @@ router.get('/pending', async (_req, res) => {
       where: { playerId: player.id, approved: false, rejected: false },
       orderBy: { date: 'desc' },
     });
-    res.json(logs.map(l => ({ ...l, menus: JSON.parse(l.menus), statsDelta: JSON.parse(l.statsDelta) })));
+    res.json(logs);
   } catch (e) {
     res.status(500).json({ error: String(e) });
   }

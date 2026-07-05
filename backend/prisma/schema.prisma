@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -37,11 +37,11 @@ model TrainingLog {
   playerId   Int
   player     Player    @relation(fields: [playerId], references: [id])
   date       DateTime
-  menus      String
+  menus      Json
   approved   Boolean   @default(false)
   approvedAt DateTime?
   rejected   Boolean   @default(false)
-  statsDelta String    @default("{}")
+  statsDelta Json
   createdAt  DateTime  @default(now())
 }
 
